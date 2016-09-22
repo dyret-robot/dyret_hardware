@@ -8,6 +8,7 @@
 #include <ctime>
 
 #include "ros/ros.h"
+#include "ros/console.h"
 
 #include "include/robotis/dynamixel_sdk.h" // Uses Dynamixel SDK library
 
@@ -61,41 +62,38 @@ long long unsigned int getMs(){
 }
 
 void printCommResult(int dxl_comm_result, std::string givenString){
-  printf("%llu:\n  ",(getMs()/1000) - startTime);
 
   switch (dxl_comm_result){
     case COMM_SUCCESS:
-      printf("COMM_SUCCESS\n");
+      ROS_INFO("COMM_SUCCESS (%s)", givenString.c_str());
       break;
     case COMM_PORT_BUSY:
-      printf("COMM_PORT_BUSY\n");
+      ROS_ERROR("COMM_PORT_BUSY (%s)", givenString.c_str());
       break;
     case COMM_TX_FAIL:
-      printf("COMM_TX_FAIL\n");
+      ROS_ERROR("COMM_TX_FAIL (%s)", givenString.c_str());
       break;
     case COMM_RX_FAIL:
-      printf("COMM_RX_FAIL\n");
+      ROS_ERROR("COMM_RX_FAIL (%s)", givenString.c_str());
       break;
     case COMM_TX_ERROR:
-      printf("COMM_TX_ERROR\n");
+      ROS_ERROR("COMM_TX_ERROR (%s)", givenString.c_str());
       break;
     case COMM_RX_WAITING:
-      printf("COMM_RX_WAITING\n");
+      ROS_ERROR("COMM_RX_WAITING (%s)", givenString.c_str());
       break;
     case COMM_RX_TIMEOUT:
-      printf("COMM_RX_TIMEOUT\n");
+      ROS_ERROR("COMM_RX_TIMEOUT (%s)", givenString.c_str());
       break;
     case COMM_RX_CORRUPT:
-      printf("COMM_RX_CORRUPT\n");
+      ROS_ERROR("COMM_RX_CORRUPT (%s)", givenString.c_str());
       break;
     case COMM_NOT_AVAILABLE:
-      printf("COMM_NOT_AVAILABLE\n");
+      ROS_ERROR("COMM_NOT_AVAILABLE (%s)", givenString.c_str());
       break;
     default:
-      printf("Unknown: %d\n", dxl_comm_result);
+      ROS_ERROR("Unknown: %d (%s)", dxl_comm_result, givenString.c_str());
   }
-  printf("  %s\n", givenString.c_str());
-
 }
 
 void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
@@ -120,7 +118,7 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, (uint8_t*) &convertedSpeed);
 
         if (dxl_addparam_result != true){
-            printf("%llu: AddParam for speedGroupSyncWriter failed\n",(getMs()/1000) - startTime);
+            ROS_ERROR("%llu: AddParam for speedGroupSyncWriter failed",(getMs()/1000) - startTime);
             speedGroupSyncWriter->clearParam();
             return;
         }
@@ -130,7 +128,7 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
       } else {
-        printf("Unknown configType!\n");
+        ROS_ERROR("Unknown configType detected!");
       }
 
     }
@@ -147,8 +145,6 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
 
 void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
 
-  //printf("Received msg to move\n");
-
   for (int i = 0; i < msg->angle.size(); i++){
     // Normalize to -pi -> pi
 
@@ -161,7 +157,7 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
     commandedPositions[i] = dynAngle;
 
     bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], (uint8_t*) &dynAngle);
-    if (dxl_addparam_result != true) printf("%llu: AddParam for goalAddressGroupSyncWriter failed\n",(getMs()/1000) - startTime);
+    if (dxl_addparam_result != true) ROS_ERROR("%llu: AddParam for goalAddressGroupSyncWriter failed",(getMs()/1000) - startTime);
 
   }
 
@@ -194,12 +190,12 @@ const char* getDynamixelSerialPort(){
       if (res.find("ftdi") != std::string::npos){
           std::ostringstream retStream;
           retStream << "/dev/ttyUSB" << i;
-          printf("Found dynamixel device on %s\n", retStream.str().c_str());
+          ROS_INFO("Found dynamixel device on %s", retStream.str().c_str());
           return retStream.str().c_str();
       }
   }
 
-  printf("Could not find dynamixel device connected. Exiting!\n");
+  ROS_FATAL("Could not find dynamixel device connected. Exiting!");
   fflush(stdout);
   exit(-1);
 }
@@ -219,7 +215,7 @@ std::vector<double> readServoAngles(){
   for (int i = 0; i < 12; i++){
       dxl_getdata_result = posGroupBulkReader->isAvailable(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
       if (dxl_getdata_result == false) {
-          printf("%llu: posGroupBulkReader is not available\n",(getMs()/1000) - startTime);
+          ROS_ERROR("%llu: posGroupBulkReader is not available",(getMs()/1000) - startTime);
           vectorToReturn.clear();
           return vectorToReturn;
       } else {
@@ -251,7 +247,7 @@ std::vector<double> readServoCurrent(){
   for (int i = 0; i < 12; i++){
       dxl_getdata_result = currentGroupBulkReader->isAvailable(i, ADDR_MX_CURRENT, LEN_MX_CURRENT);
       if (dxl_getdata_result == false) {
-          printf("%llu: currentGroupBulkReader is not available\n",(getMs()/1000) - startTime);
+          ROS_ERROR("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
           vectorToReturn.clear();
           return vectorToReturn;
       } else {
@@ -279,8 +275,6 @@ bool checkServoAlive(int givenId){
     packetHandler->printRxPacketError(dxl_error);
   }
 
-  printf("Servo %u OK\n", givenId);
-
   return true;
 }
 
@@ -290,12 +284,12 @@ bool verifyConnection(){
 
   for (int i = 0; i < 12; i++){
       if (checkServoAlive(i) == false){
-          printf("Servo %u not responding\n", i);
+          ROS_FATAL("Servo %u not responding", i);
           returnValue = false;
       }
   }
 
-  sleep(5);
+  ROS_INFO("All servos connected");
   return returnValue;
 }
 
@@ -310,49 +304,44 @@ int main(int argc, char **argv){
 
     char fileNameBuffer[50];
     sprintf(fileNameBuffer,"servoLogs/servo_%04u%02u%02u%02u%02u.csv", now->tm_year+1900, now->tm_mon+1, now->tm_mday, now->tm_hour, now->tm_min);
-    printf("%s\n", fileNameBuffer);
 
     servoLog = fopen(fileNameBuffer, "w");
 
     // Init ROS
     ros::init(argc, argv, "dynamixel_server");
     ros::NodeHandle n;
+    sleep(1);
+
+    ROS_INFO("Dynamixel_server initialized");
+
     ros::Subscriber servoConfigs_sub = n.subscribe("servoConfigs", 10, servoConfigsCallback);
     ros::Subscriber dynCommands_sub = n.subscribe("dynCommands", 1, dynCommandsCallback);
 
     ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("servoStates", 5);
-
     //ros::Rate loop_rate(50);
 
-    portHandler = PortHandler::getPortHandler(getDynamixelSerialPort());
+    std::string serialPort = getDynamixelSerialPort();
+    portHandler = PortHandler::getPortHandler(serialPort.c_str());
+    //portHandler = PortHandler::getPortHandler("/dev/ttyUSB0");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
     goalAddressGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_GOAL_POSITION, LEN_MX_GOAL_POSITION);
     speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_MOVING_SPEED, LEN_MX_MOVING_SPEED);
     posGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     currentGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
-
     // Open port
-    if( portHandler->openPort() )
-    {
-        printf("OpenPort succeeded\n" );
-    }
-    else
-    {
-        printf("OpenPort failed\n" );
+    if(portHandler->openPort() ) {
+        ROS_INFO("OpenPort succeeded" );
+    } else {
+        ROS_FATAL("OpenPort failed" );
         return -1;
     }
-
     // Set port baudrate
-    if( portHandler->setBaudRate(BAUDRATE) )
-    {
-        printf("SetBaudRate succeeded!\n" );
-    }
-    else
-    {
-        printf("SetBaudRate failed!\n");
+    if(portHandler->setBaudRate(BAUDRATE)) {
+        ROS_INFO("SetBaudRate succeeded!" );
+    } else {
+        ROS_FATAL("SetBaudRate failed!");
         return -1;
     }
-
 
     if (verifyConnection() == false){
         return -1;
@@ -362,8 +351,8 @@ int main(int argc, char **argv){
   for (int i = 0; i < 12; i++){
     bool dxl_addparam_result = posGroupBulkReader->addParam(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
     if (dxl_addparam_result != true) {
-      printf("%llu: posGroupBulkReader is not available\n",(getMs()/1000) - startTime);
-      return 0;
+      ROS_FATAL("%llu: posGroupBulkReader is not available",(getMs()/1000) - startTime);
+      return -1;
     }
   }
 
@@ -371,12 +360,13 @@ int main(int argc, char **argv){
     for (int i = 0; i < 12; i++){
       bool dxl_addparam_result = currentGroupBulkReader->addParam(i, ADDR_MX_CURRENT, LEN_MX_CURRENT);
       if (dxl_addparam_result != true) {
-        printf("%llu: currentGroupBulkReader is not available\n",(getMs()/1000) - startTime);
-        return 0;
+        ROS_FATAL("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
+        return -1;
       }
     }
 
   while (ros::ok()){
+
     std::vector<dyret_common::ServoState> servoStates;
     servoStates.resize(12);
 
@@ -408,7 +398,7 @@ int main(int argc, char **argv){
             servoStateArrayMsg.servoStates = servoStates;
             servoStates_pub.publish(servoStateArrayMsg);
 
-            if (servoLoggingEnabled == true){
+/*            if (servoLoggingEnabled == true){
                 ros::Time currentTime = ros::Time::now();
 
                 fprintf(servoLog, "%llu", std::chrono::duration_cast< std::chrono::milliseconds >(system_clock::now().time_since_epoch()).count() - startTime);
@@ -428,8 +418,8 @@ int main(int argc, char **argv){
                 }
                 fprintf(servoLog, "\n");
             }
-
-          } else printf("%llu: Corrupt angle read!\n",(getMs()/1000) - startTime);
+*/
+          } else ROS_WARN("%llu: Corrupt angle read!",(getMs()/1000) - startTime);
       }
     }
 
