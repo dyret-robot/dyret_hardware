@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>dyret_hardware</name>
+  <version>0.0.0</version>
+  <description>The dyret_hardware package</description>
+
+  <maintainer email="tonnesfn@ifi.uio.no">tonnesfn</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend> 
+  <build_depend>dyret_common</build_depend> 
+  <run_depend>message_runtime</run_depend>
+
+  <export>
+  </export>
+</package>
