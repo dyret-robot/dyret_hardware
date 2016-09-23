@@ -68,25 +68,25 @@ void printCommResult(int dxl_comm_result, std::string givenString){
       ROS_INFO("COMM_SUCCESS (%s)", givenString.c_str());
       break;
     case COMM_PORT_BUSY:
-      ROS_ERROR("COMM_PORT_BUSY (%s)", givenString.c_str());
+      ROS_WARN("COMM_PORT_BUSY (%s)", givenString.c_str());
       break;
     case COMM_TX_FAIL:
-      ROS_ERROR("COMM_TX_FAIL (%s)", givenString.c_str());
+      ROS_WARN("COMM_TX_FAIL (%s)", givenString.c_str());
       break;
     case COMM_RX_FAIL:
-      ROS_ERROR("COMM_RX_FAIL (%s)", givenString.c_str());
+      ROS_WARN("COMM_RX_FAIL (%s)", givenString.c_str());
       break;
     case COMM_TX_ERROR:
-      ROS_ERROR("COMM_TX_ERROR (%s)", givenString.c_str());
+      ROS_WARN("COMM_TX_ERROR (%s)", givenString.c_str());
       break;
     case COMM_RX_WAITING:
-      ROS_ERROR("COMM_RX_WAITING (%s)", givenString.c_str());
+      ROS_WARN("COMM_RX_WAITING (%s)", givenString.c_str());
       break;
     case COMM_RX_TIMEOUT:
-      ROS_ERROR("COMM_RX_TIMEOUT (%s)", givenString.c_str());
+      ROS_WARN("COMM_RX_TIMEOUT (%s)", givenString.c_str());
       break;
     case COMM_RX_CORRUPT:
-      ROS_ERROR("COMM_RX_CORRUPT (%s)", givenString.c_str());
+      ROS_WARN("COMM_RX_CORRUPT (%s)", givenString.c_str());
       break;
     case COMM_NOT_AVAILABLE:
       ROS_ERROR("COMM_NOT_AVAILABLE (%s)", givenString.c_str());
@@ -310,7 +310,7 @@ int main(int argc, char **argv){
     // Init ROS
     ros::init(argc, argv, "dynamixel_server");
     ros::NodeHandle n;
-    sleep(1);
+    sleep(5); // Delay to allow IMU node to start first
 
     ROS_INFO("Dynamixel_server initialized");
 
