@@ -1,0 +1,18 @@
+<launch>
+  <!--<node pkg="tonnesfn_experiments" name="hardwareTest" type="hardwareTest" />-->
+  <node pkg="dyret_hardware" name="dynamixel_server" type="dynamixel_server" />
+
+  <node pkg="dyret_controller" name="gaitController" type="gaitController" />
+  <node pkg="dyret_controller" name="gaitEvaluator" type="gaitEvaluator" />
+  <node pkg="dyret_controller" name="trajectoryController" type="trajectoryController" />
+  <node pkg="dyret_controller" name="inverseKinematicsService" type="inverseKinematicsService" />
+
+  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" >
+    <param name="frame_id" value="/imu" />
+    <param name="frame_local" value="ENU" />
+    <param name="device" value="auto" />
+    <param name="baudrate" value="0" />
+    <param name="timeout" value="0.0025" />
+  </node>
+
+</launch>
