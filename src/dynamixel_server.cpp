@@ -18,6 +18,8 @@
 #include "dyret_common/ServoConfig.h"
 #include "dyret_common/ServoConfigArray.h"
 
+#include "dyret_utils/angleConv.h"
+
 #define PROTOCOL_VERSION                1.0
 #define ADDR_MX_D_GAIN                  26
 #define ADDR_MX_I_GAIN                  27
@@ -378,7 +380,7 @@ int main(int argc, char **argv){
       // Build servoStates array
       for (int i = 0; i < servoAngles.size(); i++){
           servoStates[i].id = i;
-          servoStates[i].position = servoAngles[i];
+          servoStates[i].position = dyn2rad(servoAngles[i]);
           servoStates[i].current = fabs(servoCurrents[i]);
       }
 

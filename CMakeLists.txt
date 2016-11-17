@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp 
   std_msgs 
   dyret_common
+  dyret_utils
 )
 
 catkin_package(
