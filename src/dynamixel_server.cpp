@@ -317,9 +317,9 @@ int main(int argc, char **argv){
     ROS_INFO("Dynamixel_server initialized");
 
     ros::Subscriber servoConfigs_sub = n.subscribe("servoConfigs", 10, servoConfigsCallback);
-    ros::Subscriber dynCommands_sub = n.subscribe("dynCommands", 1, dynCommandsCallback);
+    ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
 
-    ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("servoStates", 5);
+    ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
     //ros::Rate loop_rate(50);
 
     std::string serialPort = getDynamixelSerialPort();
