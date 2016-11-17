@@ -223,11 +223,11 @@ std::vector<double> readServoAngles(){
       } else {
           int dxl_present_position = posGroupBulkReader->getData(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
 
-          if (i == 1 || i == 5 || i == 8 || i == 10){ // Invert
-              vectorToReturn[i] = (double) invertServoAngle(dxl_present_position);
-          } else {
+          //if (i == 1 || i == 5 || i == 8 || i == 10){ // Invert
+          //    vectorToReturn[i] = (double) invertServoAngle(dxl_present_position);
+          //} else {
               vectorToReturn[i] = (double) dxl_present_position;
-          }
+          //}
       }
   }
 
