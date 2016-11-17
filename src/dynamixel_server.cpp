@@ -148,13 +148,7 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
 void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
 
   for (int i = 0; i < msg->angle.size(); i++){
-    // Normalize to -pi -> pi
-
-    double modRes = fmod((msg->angle[i]+M_PI), 2*M_PI);
-    if (modRes < 0) modRes = modRes + 2*M_PI;
-    double normalizedInput = modRes - M_PI;
-
-    int dynAngle = round(((normalizedInput / (2 * M_PI)) * 4095.0) + 2048.0);
+    int dynAngle = round(((normalizeRad(msg->angle[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
 
     commandedPositions[i] = dynAngle;
 
