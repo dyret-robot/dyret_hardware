@@ -10,7 +10,7 @@
 #include "ros/ros.h"
 #include "ros/console.h"
 
-#include "include/robotis/dynamixel_sdk.h" // Uses Dynamixel SDK library
+#include "../include/dynamixel_sdk/dynamixel_sdk.h" // Uses Dynamixel SDK library
 
 #include "dyret_common/Pose.h"
 #include "dyret_common/ServoState.h"
@@ -310,7 +310,7 @@ int main(int argc, char **argv){
 
     ROS_INFO("Dynamixel_server initialized");
 
-    ros::Subscriber servoConfigs_sub = n.subscribe("servoConfigs", 10, servoConfigsCallback);
+    ros::Subscriber servoConfigs_sub = n.subscribe("/dyret/servoConfigs", 10, servoConfigsCallback);
     ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
 
     ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);

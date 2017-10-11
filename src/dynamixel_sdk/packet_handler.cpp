@@ -28,65 +28,39 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
-/* Author: zerom, Leon Ryu Woon Jung */
+/* Author: zerom, Ryu Woon Jung (Leon) */
 
-/*
- * group_bulk_read.h
- *
- *  Created on: 2016. 1. 28.
- *      Author: zerom, leon
- */
-
-#ifndef DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKREAD_H_
-#define DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKREAD_H_
-
-
-#include <map>
-#include <vector>
-#include "port_handler.h"
+#if defined(__linux__)
 #include "packet_handler.h"
+#include "protocol1_packet_handler.h"
+#include "protocol2_packet_handler.h"
+#elif defined(__APPLE__)
+#include "packet_handler.h"
+#include "protocol1_packet_handler.h"
+#include "protocol2_packet_handler.h"
+#elif defined(_WIN32) || defined(_WIN64)
+#define WINDLLEXPORT
+#include "packet_handler.h"
+#include "protocol1_packet_handler.h"
+#include "protocol2_packet_handler.h"
+#elif defined(ARDUINO) || defined(__OPENCR__) || defined(__OPENCM904__)
+#include "../../include/dynamixel_sdk/packet_handler.h"
+#include "../../include/dynamixel_sdk/protocol1_packet_handler.h"
+#include "../../include/dynamixel_sdk/protocol2_packet_handler.h"
+#endif
 
-namespace dynamixel
+using namespace dynamixel;
+
+PacketHandler *PacketHandler::getPacketHandler(float protocol_version)
 {
+  if (protocol_version == 1.0)
+  {
+    return (PacketHandler *)(Protocol1PacketHandler::getInstance());
+  }
+  else if (protocol_version == 2.0)
+  {
+    return (PacketHandler *)(Protocol2PacketHandler::getInstance());
+  }
 
-class WINDECLSPEC GroupBulkRead
-{
- private:
-  PortHandler    *port_;
-  PacketHandler  *ph_;
-
-  std::vector<uint8_t>            id_list_;
-  std::map<uint8_t, uint16_t>     address_list_;  // <id, start_address>
-  std::map<uint8_t, uint16_t>     length_list_;   // <id, data_length>
-  std::map<uint8_t, uint8_t *>    data_list_;     // <id, data>
-
-  bool            last_result_;
-  bool            is_param_changed_;
-
-  uint8_t        *param_;
-
-  void    makeParam();
-
- public:
-  GroupBulkRead(PortHandler *port, PacketHandler *ph);
-  ~GroupBulkRead() { clearParam(); }
-
-  PortHandler     *getPortHandler()   { return port_; }
-  PacketHandler   *getPacketHandler() { return ph_; }
-
-  bool    addParam    (uint8_t id, uint16_t start_address, uint16_t data_length);
-  void    removeParam (uint8_t id);
-  void    clearParam  ();
-
-  int     txPacket();
-  int     rxPacket();
-  int     txRxPacket();
-
-  bool        isAvailable (uint8_t id, uint16_t address, uint16_t data_length);
-  uint32_t    getData     (uint8_t id, uint16_t address, uint16_t data_length);
-};
-
+  return (PacketHandler *)(Protocol2PacketHandler::getInstance());
 }
-
-
-#endif /* DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKREAD_H_ */

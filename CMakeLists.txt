@@ -11,11 +11,38 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
+  INCLUDE_DIRS include
   CATKIN_DEPENDS message_runtime
 )
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+  include/dynamixel_sdk
+  ${catkin_INCLUDE_DIRS}
+)
 
-add_executable(dynamixel_server src/dynamixel_server.cpp)
-target_link_libraries(dynamixel_server ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/lib/libdxl_x64_cpp.so)
-add_dependencies(dynamixel_server ${catkin_EXPORTED_TARGETS})
+
+add_executable(dynamixel_server src/dynamixel_server.cpp
+    src/dynamixel_sdk/packet_handler.cpp
+    src/dynamixel_sdk/protocol1_packet_handler.cpp
+    src/dynamixel_sdk/protocol2_packet_handler.cpp
+    src/dynamixel_sdk/group_sync_read.cpp
+    src/dynamixel_sdk/group_sync_write.cpp
+    src/dynamixel_sdk/group_bulk_read.cpp
+    src/dynamixel_sdk/group_bulk_write.cpp
+    src/dynamixel_sdk/port_handler.cpp
+    src/dynamixel_sdk/port_handler_linux.cpp    
+)
+
+
+add_dependencies(dynamixel_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(dynamixel_server ${catkin_LIBRARIES})
+
+install(TARGETS dynamixel_server
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)

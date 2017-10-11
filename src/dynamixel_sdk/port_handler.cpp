@@ -28,60 +28,34 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************/
 
-/* Author: zerom, Leon Ryu Woon Jung */
+/* Author: zerom, Ryu Woon Jung (Leon) */
 
-/*
- * group_bulk_write.h
- *
- *  Created on: 2016. 2. 2.
- */
-
-#ifndef DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKWRITE_H_
-#define DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKWRITE_H_
-
-
-#include <map>
-#include <vector>
+#if defined(__linux__)
 #include "port_handler.h"
-#include "packet_handler.h"
+#include "port_handler_linux.h"
+#elif defined(__APPLE__)
+#include "port_handler.h"
+#include "port_handler_mac.h"
+#elif defined(_WIN32) || defined(_WIN64)
+#define WINDLLEXPORT
+#include "port_handler.h"
+#include "port_handler_windows.h"
+#elif defined(ARDUINO) || defined(__OPENCR__) || defined(__OPENCM904__)
+#include "../../include/dynamixel_sdk/port_handler.h"
+#include "../../include/dynamixel_sdk/port_handler_arduino.h"
+#endif
 
-namespace dynamixel
+using namespace dynamixel;
+
+PortHandler *PortHandler::getPortHandler(const char *port_name)
 {
-
-class WINDECLSPEC GroupBulkWrite
-{
- private:
-  PortHandler    *port_;
-  PacketHandler  *ph_;
-
-  std::vector<uint8_t>            id_list_;
-  std::map<uint8_t, uint16_t>     address_list_;  // <id, start_address>
-  std::map<uint8_t, uint16_t>     length_list_;   // <id, data_length>
-  std::map<uint8_t, uint8_t *>    data_list_;     // <id, data>
-
-  bool            is_param_changed_;
-
-  uint8_t        *param_;
-  uint16_t        param_length_;
-
-  void    makeParam();
-
- public:
-  GroupBulkWrite(PortHandler *port, PacketHandler *ph);
-  ~GroupBulkWrite() { clearParam(); }
-
-  PortHandler     *getPortHandler()   { return port_; }
-  PacketHandler   *getPacketHandler() { return ph_; }
-
-  bool    addParam    (uint8_t id, uint16_t start_address, uint16_t data_length, uint8_t *data);
-  void    removeParam (uint8_t id);
-  bool    changeParam (uint8_t id, uint16_t start_address, uint16_t data_length, uint8_t *data);
-  void    clearParam  ();
-
-  int     txPacket();
-};
-
+#if defined(__linux__)
+  return (PortHandler *)(new PortHandlerLinux(port_name));
+#elif defined(__APPLE__)
+  return (PortHandler *)(new PortHandlerMac(port_name));
+#elif defined(_WIN32) || defined(_WIN64)
+  return (PortHandler *)(new PortHandlerWindows(port_name));
+#elif defined(ARDUINO) || defined(__OPENCR__) || defined(__OPENCM904__)
+  return (PortHandler *)(new PortHandlerArduino(port_name));
+#endif
 }
-
-
-#endif /* DYNAMIXEL_SDK_INCLUDE_DYNAMIXEL_SDK_GROUPBULKWRITE_H_ */
