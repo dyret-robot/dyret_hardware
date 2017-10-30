@@ -1,4 +1,5 @@
 .cproject
+cmake-build-debug/
 .project
 .settings/
 .idea

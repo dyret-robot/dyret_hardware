@@ -29,15 +29,11 @@
 #define ADDR_MX_PRESENT_POSITION        36
 #define ADDR_MX_CURRENT                 68
 
-#define LEN_MX_D_GAIN                   1
-#define LEN_MX_I_GAIN                   1
-#define LEN_MX_P_GAIN                   1
 #define LEN_MX_GOAL_POSITION            2
 #define LEN_MX_MOVING_SPEED             2
 #define LEN_MX_PRESENT_POSITION         2
 #define LEN_MX_CURRENT                  2
 #define BAUDRATE                        1000000
-#define DEVICENAME                      "/dev/ttyUSB0"
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
 using namespace dynamixel;     // Uses functions defined in ROBOTIS namespace
@@ -178,24 +174,6 @@ std::string exec(const char* cmd) {
     return result;
 }
 
-const char* getDynamixelSerialPort(){
-  for (int i = 0; i < 9; i++){
-      std::ostringstream stringStream;
-      stringStream << "ls -al /sys/class/tty/ttyUSB" << i << "//device/driver";
-      std::string res = exec(stringStream.str().c_str());
-      if (res.find("ftdi") != std::string::npos){
-          std::ostringstream retStream;
-          retStream << "/dev/ttyUSB" << i;
-          ROS_INFO("Found dynamixel device on %s", retStream.str().c_str());
-          return retStream.str().c_str();
-      }
-  }
-
-  ROS_FATAL("Could not find dynamixel device connected. Exiting!");
-  fflush(stdout);
-  exit(-1);
-}
-
 std::vector<double> readServoAngles(){
   std::vector<double> vectorToReturn(12);
 
@@ -316,9 +294,7 @@ int main(int argc, char **argv){
     ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
     //ros::Rate loop_rate(50);
 
-    std::string serialPort = getDynamixelSerialPort();
-    portHandler = PortHandler::getPortHandler(serialPort.c_str());
-    //portHandler = PortHandler::getPortHandler("/dev/ttyUSB0");
+    portHandler = PortHandler::getPortHandler("/dev/usb2dynamixel");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
     goalAddressGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_GOAL_POSITION, LEN_MX_GOAL_POSITION);
     speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_MOVING_SPEED, LEN_MX_MOVING_SPEED);
