@@ -11,12 +11,12 @@
     <param name="port" value="/dev/actuatorBoard" />
   </node>
 
-<!--  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" >
+  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" >
     <param name="frame_id" value="/imu" />
     <param name="frame_local" value="ENU" />
     <param name="device" value="/dev/dyretImu" />
     <param name="baudrate" value="0" />
     <param name="timeout" value="0.0025" />
-  </node> -->
+  </node>
 
 </launch>
