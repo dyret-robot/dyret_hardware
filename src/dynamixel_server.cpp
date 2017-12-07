@@ -28,11 +28,13 @@
 #define ADDR_MX_MOVING_SPEED            32
 #define ADDR_MX_PRESENT_POSITION        36
 #define ADDR_MX_CURRENT                 68
+#define ADDR_MX_TEMPERATURE             43
 
 #define LEN_MX_GOAL_POSITION            2
 #define LEN_MX_MOVING_SPEED             2
 #define LEN_MX_PRESENT_POSITION         2
 #define LEN_MX_CURRENT                  2
+#define LEN_MX_TEMPERATURE              1
 #define BAUDRATE                        1000000
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
@@ -48,6 +50,7 @@ GroupSyncWrite *goalAddressGroupSyncWriter;
 GroupSyncWrite *speedGroupSyncWriter;
 GroupBulkRead *posGroupBulkReader;
 GroupBulkRead *currentGroupBulkReader;
+GroupBulkRead *temperatureGroupBulkReader;
 
 long long unsigned int startTime;
 
@@ -141,7 +144,11 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
   }
 }
 
+long long int lastTime;
+
 void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
+
+  //long long unsigned int initTime = getMs();
 
   for (int i = 0; i < msg->angle.size(); i++){
     int dynAngle = round(((normalizeRad(msg->angle[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
@@ -160,18 +167,10 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
   // Clear syncwrite parameter storage
   goalAddressGroupSyncWriter->clearParam();
 
-}
+  //printf("DynCommands: %llums, (total : ", initTime - getMs());
+  //printf("%llums, %.2fhz)\n", getMs() - lastTime, (1000.0 / double(getMs() - lastTime)));
+  //lastTime = getMs();
 
-std::string exec(const char* cmd) {
-    char buffer[128];
-    std::string result = "";
-    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    while (!feof(pipe.get())) {
-        if (fgets(buffer, 128, pipe.get()) != NULL)
-            result += buffer;
-    }
-    return result;
 }
 
 std::vector<double> readServoAngles(){
@@ -201,6 +200,32 @@ std::vector<double> readServoAngles(){
               vectorToReturn[i] = (double) dxl_present_position;
           //}
       }
+  }
+
+  return vectorToReturn;
+}
+
+std::vector<int> readServoTemperature(){
+  std::vector<int> vectorToReturn(12);
+
+  int dxl_comm_result = temperatureGroupBulkReader->txRxPacket();
+
+  if (dxl_comm_result != COMM_SUCCESS){
+    printCommResult(dxl_comm_result, "currentGroupBulkReader");
+    vectorToReturn.clear();
+    return vectorToReturn;
+  }
+
+  bool dxl_getdata_result;
+  for (int i = 0; i < 12; i++){
+    dxl_getdata_result = temperatureGroupBulkReader->isAvailable(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+    if (dxl_getdata_result == false) {
+      ROS_ERROR("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
+      vectorToReturn.clear();
+      return vectorToReturn;
+    } else {
+      vectorToReturn[i] = (int) temperatureGroupBulkReader->getData(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+    }
   }
 
   return vectorToReturn;
@@ -300,6 +325,8 @@ int main(int argc, char **argv){
     speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_MOVING_SPEED, LEN_MX_MOVING_SPEED);
     posGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     currentGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
+    temperatureGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
+
     // Open port
     if(portHandler->openPort() ) {
         ROS_INFO("OpenPort succeeded" );
@@ -337,14 +364,34 @@ int main(int argc, char **argv){
       }
     }
 
+  // Init currentGroupBulkReader
+  for (int i = 0; i < 12; i++){
+    bool dxl_addparam_result = temperatureGroupBulkReader->addParam(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+    if (dxl_addparam_result != true) {
+      ROS_FATAL("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
+      return -1;
+    }
+  }
+
+  long long int initTime;
   while (ros::ok()){
 
     std::vector<dyret_common::ServoState> servoStates;
     servoStates.resize(12);
 
+    //initTime = getMs();
     std::vector<double> servoAngles = readServoAngles();
-    std::vector<double> servoCurrents = readServoCurrent();
+    //printf("readServoAngles() = %llums\n", getMs() - initTime);
+    //std::vector<double> servoCurrents = readServoCurrent();*/
+    std::vector<double> servoCurrents(12);
 
+    //initTime = getMs();
+    std::vector<int> servoTemperatures = readServoTemperature();
+    //printf("readServoTemperature() = %llums\n", getMs() - initTime);*/
+    //std::vector<int> servoTemperatures(12);
+
+
+    initTime = getMs();
     if (servoAngles.size() != 0 && servoCurrents.size() != 0){
 
       // Build servoStates array
@@ -352,6 +399,7 @@ int main(int argc, char **argv){
           servoStates[i].id = i;
           servoStates[i].position = dyn2rad(servoAngles[i]);
           servoStates[i].current = fabs(servoCurrents[i]);
+          servoStates[i].temperature = servoTemperatures[i];
       }
 
       if (servoAngles.size() != 0){
@@ -394,6 +442,8 @@ int main(int argc, char **argv){
           } else ROS_WARN("%llu: Corrupt angle read!",(getMs()/1000) - startTime);
       }
     }
+    //printf("Send servo states = %llums\n", getMs() - initTime);
+
 
     ros::spinOnce();
   }
