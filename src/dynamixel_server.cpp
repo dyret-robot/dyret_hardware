@@ -328,8 +328,8 @@ bool checkServoAlive(int givenId){
   }
   else if (dxl_error != 0)
   {
+    ROS_FATAL("Servo id %d: %s",givenId, packetHandler->getRxPacketError(dxl_error));
     return false;
-    packetHandler->printRxPacketError(dxl_error);
   }
 
   return true;
@@ -341,12 +341,11 @@ bool verifyConnection(){
 
   for (int i = 0; i < 12; i++){
       if (checkServoAlive(i) == false){
-          ROS_FATAL("Servo %u not responding", i);
           returnValue = false;
       }
   }
 
-  ROS_INFO("All servos connected");
+  if (returnValue == true) ROS_INFO("All servos connected");
   return returnValue;
 }
 
