@@ -17,6 +17,9 @@
 #include "dyret_common/ServoStateArray.h"
 #include "dyret_common/ServoConfig.h"
 #include "dyret_common/ServoConfigArray.h"
+#include "dyret_common/ServoStatus.h"
+#include "dyret_common/ServoStatusArray.h"
+#include "dyret_common/GetServoStatuses.h"
 
 #include "dyret_utils/angleConv.h"
 
@@ -29,12 +32,15 @@
 #define ADDR_MX_PRESENT_POSITION        36
 #define ADDR_MX_CURRENT                 68
 #define ADDR_MX_TEMPERATURE             43
+#define ADDR_MX_VOLTAGE                 42
+#define ADDR_MX_TORQUE_ENABLE           24
 
 #define LEN_MX_GOAL_POSITION            2
 #define LEN_MX_MOVING_SPEED             2
 #define LEN_MX_PRESENT_POSITION         2
 #define LEN_MX_CURRENT                  2
 #define LEN_MX_TEMPERATURE              1
+#define LEN_MX_VOLTAGE                  1
 #define BAUDRATE                        1000000
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
@@ -51,6 +57,11 @@ GroupSyncWrite *speedGroupSyncWriter;
 GroupBulkRead *posGroupBulkReader;
 GroupBulkRead *currentGroupBulkReader;
 GroupBulkRead *temperatureGroupBulkReader;
+GroupBulkRead *voltageGroupBulkReader;
+
+ros::Publisher servoStatuses_pub;
+
+std::vector<int> servoErrors(12);
 
 long long unsigned int startTime;
 
@@ -128,6 +139,10 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
+      } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_disableTorque){
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_TORQUE_ENABLE, 0);
+      } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_enableTorque) {
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_TORQUE_ENABLE, 1);
       } else {
         ROS_ERROR("Unknown configType detected!");
       }
@@ -200,6 +215,49 @@ std::vector<double> readServoAngles(){
               vectorToReturn[i] = (double) dxl_present_position;
           //}
       }
+  }
+
+  return vectorToReturn;
+}
+
+std::vector<int> readServoError(){
+
+  std::vector<int> vectorToReturn(12);
+
+  for (int i = 0; i < 12; i++) {
+    uint16_t dxl_model_number;
+    uint8_t dxl_error = 0;
+
+    packetHandler->ping(portHandler, i, &dxl_model_number, &dxl_error);
+
+    vectorToReturn[i] = dxl_error;
+  }
+
+
+  return vectorToReturn;
+}
+
+std::vector<int> readServoVoltage(){
+  std::vector<int> vectorToReturn(12);
+
+  int dxl_comm_result = voltageGroupBulkReader->txRxPacket();
+
+  if (dxl_comm_result != COMM_SUCCESS){
+    printCommResult(dxl_comm_result, "voltageGroupBulkReader");
+    vectorToReturn.clear();
+    return vectorToReturn;
+  }
+
+  bool dxl_getdata_result;
+  for (int i = 0; i < 12; i++){
+    dxl_getdata_result = voltageGroupBulkReader->isAvailable(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+    if (dxl_getdata_result == false) {
+      ROS_ERROR("%llu: voltageGroupBulkReader is not available",(getMs()/1000) - startTime);
+      vectorToReturn.clear();
+      return vectorToReturn;
+    } else {
+      vectorToReturn[i] = (int) voltageGroupBulkReader->getData(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+    }
   }
 
   return vectorToReturn;
@@ -292,6 +350,28 @@ bool verifyConnection(){
   return returnValue;
 }
 
+bool getServoStatuses(dyret_common::GetServoStatuses::Request  &req, dyret_common::GetServoStatuses::Response &res){
+  std::vector<dyret_common::ServoStatus> servoStatuses;
+  servoStatuses.resize(12);
+
+  std::vector<int> servoTemperatures = readServoTemperature();
+  std::vector<int> servoVoltage = readServoVoltage();
+  readServoError();
+
+  for (int i = 0; i < 12; i++){
+    servoStatuses[i].id = i;
+    if (servoTemperatures.size() == 12) servoStatuses[i].temperature = servoTemperatures[i]; else servoStatuses[i].temperature = -1;
+    if (servoVoltage.size() == 12) servoStatuses[i].voltage = float(servoVoltage[i]/10.0); else servoStatuses[i].voltage = -1;
+    servoStatuses[i].status = servoErrors[i];
+  }
+
+  dyret_common::ServoStatusArray servoStatusArrayMsg;
+  servoStatusArrayMsg.servoStatuses = servoStatuses;
+  servoStatuses_pub.publish(servoStatusArrayMsg);
+
+  res.servoStatuses = servoStatuses;
+}
+
 int main(int argc, char **argv){
     startTime = getMs() / 1000;
 
@@ -313,11 +393,13 @@ int main(int argc, char **argv){
 
     ROS_INFO("Dynamixel_server initialized");
 
+    ros::ServiceServer service = n.advertiseService("/dyret/servoStatuses", getServoStatuses);
+
     ros::Subscriber servoConfigs_sub = n.subscribe("/dyret/servoConfigs", 10, servoConfigsCallback);
     ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
 
     ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
-    //ros::Rate loop_rate(50);
+    servoStatuses_pub = n.advertise<dyret_common::ServoStatusArray>("/dyret/servoStatuses", 5);
 
     portHandler = PortHandler::getPortHandler("/dev/usb2dynamixel");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
@@ -326,6 +408,7 @@ int main(int argc, char **argv){
     posGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     currentGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     temperatureGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
+    voltageGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
 
     // Open port
     if(portHandler->openPort() ) {
@@ -364,34 +447,61 @@ int main(int argc, char **argv){
       }
     }
 
-  // Init currentGroupBulkReader
+  // Init temperatureGroupBulkReader
   for (int i = 0; i < 12; i++){
     bool dxl_addparam_result = temperatureGroupBulkReader->addParam(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
     if (dxl_addparam_result != true) {
-      ROS_FATAL("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
+      ROS_FATAL("%llu: temperatureGroupBulkReader is not available",(getMs()/1000) - startTime);
       return -1;
     }
   }
 
-  long long int initTime;
+  // Init voltageGroupBulkReader
+  for (int i = 0; i < 12; i++){
+    bool dxl_addparam_result = voltageGroupBulkReader->addParam(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+    if (dxl_addparam_result != true) {
+      ROS_FATAL("%llu: voltageGroupBulkReader is not available",(getMs()/1000) - startTime);
+      return -1;
+    }
+  }
+
+  long long int lastStatusSent = getMs();
+
   while (ros::ok()){
+/*
+    if (getMs() - lastStatusSent > 1000){ // Send status every second
+      std::vector<dyret_common::ServoStatus> servoStatuses;
+      servoStatuses.resize(12);
+
+      std::vector<int> servoTemperatures = readServoTemperature();
+      std::vector<int> servoVoltage = readServoVoltage();
+      //readServoError();
+
+      for (int i = 0; i < 12; i++){
+        servoStatuses[i].id = i;
+        if (servoTemperatures.size() == 12) servoStatuses[i].temperature = servoTemperatures[i]; else servoStatuses[i].temperature = -1;
+        if (servoVoltage.size() == 12) servoStatuses[i].voltage = float(servoVoltage[i]/10.0); else servoStatuses[i].voltage = -1;
+        servoStatuses[i].status = servoErrors[i];
+      }
+
+      dyret_common::ServoStatusArray servoStatusArrayMsg;
+      servoStatusArrayMsg.servoStatuses = servoStatuses;
+      servoStatuses_pub.publish(servoStatusArrayMsg);
+
+      lastStatusSent = getMs();
+    }*/
 
     std::vector<dyret_common::ServoState> servoStates;
     servoStates.resize(12);
 
-    //initTime = getMs();
     std::vector<double> servoAngles = readServoAngles();
-    //printf("readServoAngles() = %llums\n", getMs() - initTime);
     //std::vector<double> servoCurrents = readServoCurrent();*/
     std::vector<double> servoCurrents(12);
 
-    //initTime = getMs();
-    std::vector<int> servoTemperatures = readServoTemperature();
-    //printf("readServoTemperature() = %llums\n", getMs() - initTime);*/
-    //std::vector<int> servoTemperatures(12);
 
 
-    initTime = getMs();
+
+
     if (servoAngles.size() != 0 && servoCurrents.size() != 0){
 
       // Build servoStates array
@@ -399,7 +509,6 @@ int main(int argc, char **argv){
           servoStates[i].id = i;
           servoStates[i].position = dyn2rad(servoAngles[i]);
           servoStates[i].current = fabs(servoCurrents[i]);
-          servoStates[i].temperature = servoTemperatures[i];
       }
 
       if (servoAngles.size() != 0){
@@ -442,7 +551,6 @@ int main(int argc, char **argv){
           } else ROS_WARN("%llu: Corrupt angle read!",(getMs()/1000) - startTime);
       }
     }
-    //printf("Send servo states = %llums\n", getMs() - initTime);
 
 
     ros::spinOnce();
