@@ -323,12 +323,7 @@ bool checkServoAlive(int givenId){
   dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, givenId, ADDR_MX_PRESENT_POSITION, &dxl_present_position, &dxl_error);
   if (dxl_comm_result != COMM_SUCCESS)
   {
-    packetHandler->printTxRxResult(dxl_comm_result);
-    return false;
-  }
-  else if (dxl_error != 0)
-  {
-    ROS_FATAL("Servo id %d: %s",givenId, packetHandler->getRxPacketError(dxl_error));
+    ROS_FATAL("Error id %d: %s", givenId, packetHandler->getRxPacketError(dxl_comm_result));
     return false;
   }
 
