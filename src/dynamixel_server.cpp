@@ -461,6 +461,10 @@ int main(int argc, char **argv){
 
   long long int lastStatusSent = getMs();
 
+  bool readingAngles = true;
+  std::vector<double> servoAngles;
+  std::vector<double> servoCurrents(12);
+
   while (ros::ok()){
 /*
     if (getMs() - lastStatusSent > 1000){ // Send status every second
@@ -488,13 +492,9 @@ int main(int argc, char **argv){
     std::vector<dyret_common::ServoState> servoStates;
     servoStates.resize(12);
 
-    std::vector<double> servoAngles = readServoAngles();
-    //std::vector<double> servoCurrents = readServoCurrent();*/
-    std::vector<double> servoCurrents(12);
-
-
-
-
+    // Update servo angles and current every other run:
+    if (readingAngles == true) servoAngles = readServoAngles(); else servoCurrents = readServoCurrent();
+    readingAngles = !readingAngles;
 
     if (servoAngles.size() != 0 && servoCurrents.size() != 0){
 
