@@ -1,31 +1,17 @@
 /*******************************************************************************
-* Copyright (c) 2016, ROBOTIS CO., LTD.
-* All rights reserved.
+* Copyright 2017 ROBOTIS CO., LTD.
 *
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
 *
-* * Redistributions of source code must retain the above copyright notice, this
-*   list of conditions and the following disclaimer.
+*     http://www.apache.org/licenses/LICENSE-2.0
 *
-* * Redistributions in binary form must reproduce the above copyright notice,
-*   this list of conditions and the following disclaimer in the documentation
-*   and/or other materials provided with the distribution.
-*
-* * Neither the name of ROBOTIS nor the names of its
-*   contributors may be used to endorse or promote products derived from
-*   this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
 *******************************************************************************/
 
 /* Author: zerom, Ryu Woon Jung (Leon) */
@@ -231,7 +217,7 @@ void Protocol2PacketHandler::addStuffing(uint8_t *packet)
   int packet_length_out = packet_length_in;
   uint8_t temp[TXPACKET_MAX_LEN] = {0};
 
-  for (uint8_t s = PKT_HEADER0; s <= PKT_LENGTH_H; s++)
+  for (uint16_t s = PKT_HEADER0; s <= PKT_LENGTH_H; s++)
     temp[s] = packet[s]; // FF FF FD XX ID LEN_L LEN_H
   //memcpy(temp, packet, PKT_LENGTH_H+1);
   index = PKT_INSTRUCTION;
@@ -254,7 +240,7 @@ void Protocol2PacketHandler::addStuffing(uint8_t *packet)
 
   ///////////////////////////
 
-  for (uint8_t s = 0; s < index; s++)
+  for (uint16_t s = 0; s < index; s++)
     packet[s] = temp[s];
   //memcpy(packet, temp, index);
   packet[PKT_LENGTH_L] = DXL_LOBYTE(packet_length_out);
@@ -357,7 +343,7 @@ int Protocol2PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket)
            rxpacket[PKT_INSTRUCTION] != 0x55)
         {
           // remove the first byte in the packet
-          for (uint8_t s = 0; s < rx_length - 1; s++)
+          for (uint16_t s = 0; s < rx_length - 1; s++)
             rxpacket[s] = rxpacket[1 + s];
           //memcpy(&rxpacket[0], &rxpacket[idx], rx_length - idx);
           rx_length -= 1;
@@ -407,7 +393,7 @@ int Protocol2PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket)
       else
       {
         // remove unnecessary packets
-        for (uint8_t s = 0; s < rx_length - idx; s++)
+        for (uint16_t s = 0; s < rx_length - idx; s++)
           rxpacket[s] = rxpacket[idx + s];
         //memcpy(&rxpacket[0], &rxpacket[idx], rx_length - idx);
         rx_length -= idx;
@@ -577,7 +563,7 @@ int Protocol2PacketHandler::broadcastPing(PortHandler *port, std::vector<uint8_t
 
         id_list.push_back(rxpacket[PKT_ID]);
 
-        for (uint8_t s = 0; s < rx_length - STATUS_LENGTH; s++)
+        for (uint16_t s = 0; s < rx_length - STATUS_LENGTH; s++)
           rxpacket[s] = rxpacket[STATUS_LENGTH + s];
         rx_length -= STATUS_LENGTH;
 
@@ -589,7 +575,7 @@ int Protocol2PacketHandler::broadcastPing(PortHandler *port, std::vector<uint8_t
         result = COMM_RX_CORRUPT;
 
         // remove header (0xFF 0xFF 0xFD)
-        for (uint8_t s = 0; s < rx_length - 3; s++)
+        for (uint16_t s = 0; s < rx_length - 3; s++)
           rxpacket[s] = rxpacket[3 + s];
         rx_length -= 3;
       }
@@ -597,7 +583,7 @@ int Protocol2PacketHandler::broadcastPing(PortHandler *port, std::vector<uint8_t
     else
     {
       // remove unnecessary packets
-      for (uint8_t s = 0; s < rx_length - idx; s++)
+      for (uint16_t s = 0; s < rx_length - idx; s++)
         rxpacket[s] = rxpacket[idx + s];
       rx_length -= idx;
     }
@@ -687,8 +673,11 @@ int Protocol2PacketHandler::readRx(PortHandler *port, uint8_t id, uint16_t lengt
   {
     if (error != 0)
       *error = (uint8_t)rxpacket[PKT_ERROR];
-    for (uint8_t s = 0; s < length; s++)
+
+    for (uint16_t s = 0; s < length; s++)
+    {
       data[s] = rxpacket[PKT_PARAMETER0 + 1 + s];
+    }
     //memcpy(data, &rxpacket[PKT_PARAMETER0+1], length);
   }
 
@@ -722,8 +711,11 @@ int Protocol2PacketHandler::readTxRx(PortHandler *port, uint8_t id, uint16_t add
   {
     if (error != 0)
       *error = (uint8_t)rxpacket[PKT_ERROR];
-    for (uint8_t s = 0; s < length; s++)
+    
+    for (uint16_t s = 0; s < length; s++)
+    {
       data[s] = rxpacket[PKT_PARAMETER0 + 1 + s];
+    }
     //memcpy(data, &rxpacket[PKT_PARAMETER0+1], length);
   }
 
@@ -810,7 +802,7 @@ int Protocol2PacketHandler::writeTxOnly(PortHandler *port, uint8_t id, uint16_t 
   txpacket[PKT_PARAMETER0+0]  = (uint8_t)DXL_LOBYTE(address);
   txpacket[PKT_PARAMETER0+1]  = (uint8_t)DXL_HIBYTE(address);
 
-  for (uint8_t s = 0; s < length; s++)
+  for (uint16_t s = 0; s < length; s++)
     txpacket[PKT_PARAMETER0+2+s] = data[s];
   //memcpy(&txpacket[PKT_PARAMETER0+2], data, length);
 
@@ -837,7 +829,7 @@ int Protocol2PacketHandler::writeTxRx(PortHandler *port, uint8_t id, uint16_t ad
   txpacket[PKT_PARAMETER0+0]  = (uint8_t)DXL_LOBYTE(address);
   txpacket[PKT_PARAMETER0+1]  = (uint8_t)DXL_HIBYTE(address);
 
-  for (uint8_t s = 0; s < length; s++)
+  for (uint16_t s = 0; s < length; s++)
     txpacket[PKT_PARAMETER0+2+s] = data[s];
   //memcpy(&txpacket[PKT_PARAMETER0+2], data, length);
 
@@ -895,7 +887,7 @@ int Protocol2PacketHandler::regWriteTxOnly(PortHandler *port, uint8_t id, uint16
   txpacket[PKT_PARAMETER0+0]  = (uint8_t)DXL_LOBYTE(address);
   txpacket[PKT_PARAMETER0+1]  = (uint8_t)DXL_HIBYTE(address);
 
-  for (uint8_t s = 0; s < length; s++)
+  for (uint16_t s = 0; s < length; s++)
     txpacket[PKT_PARAMETER0+2+s] = data[s];
   //memcpy(&txpacket[PKT_PARAMETER0+2], data, length);
 
@@ -949,7 +941,7 @@ int Protocol2PacketHandler::syncReadTx(PortHandler *port, uint16_t start_address
   txpacket[PKT_PARAMETER0+2]  = DXL_LOBYTE(data_length);
   txpacket[PKT_PARAMETER0+3]  = DXL_HIBYTE(data_length);
 
-  for (uint8_t s = 0; s < param_length; s++)
+  for (uint16_t s = 0; s < param_length; s++)
     txpacket[PKT_PARAMETER0+4+s] = param[s];
   //memcpy(&txpacket[PKT_PARAMETER0+4], param, param_length);
 
@@ -978,7 +970,7 @@ int Protocol2PacketHandler::syncWriteTxOnly(PortHandler *port, uint16_t start_ad
   txpacket[PKT_PARAMETER0+2]  = DXL_LOBYTE(data_length);
   txpacket[PKT_PARAMETER0+3]  = DXL_HIBYTE(data_length);
 
-  for (uint8_t s = 0; s < param_length; s++)
+  for (uint16_t s = 0; s < param_length; s++)
     txpacket[PKT_PARAMETER0+4+s] = param[s];
   //memcpy(&txpacket[PKT_PARAMETER0+4], param, param_length);
 
@@ -1002,7 +994,7 @@ int Protocol2PacketHandler::bulkReadTx(PortHandler *port, uint8_t *param, uint16
   txpacket[PKT_LENGTH_H]      = DXL_HIBYTE(param_length + 3); // 3: INST CRC16_L CRC16_H
   txpacket[PKT_INSTRUCTION]   = INST_BULK_READ;
 
-  for (uint8_t s = 0; s < param_length; s++)
+  for (uint16_t s = 0; s < param_length; s++)
     txpacket[PKT_PARAMETER0+s] = param[s];
   //memcpy(&txpacket[PKT_PARAMETER0], param, param_length);
 
@@ -1010,7 +1002,7 @@ int Protocol2PacketHandler::bulkReadTx(PortHandler *port, uint8_t *param, uint16
   if (result == COMM_SUCCESS)
   {
     int wait_length = 0;
-    for (int i = 0; i < param_length; i += 5)
+    for (uint16_t i = 0; i < param_length; i += 5)
       wait_length += DXL_MAKEWORD(param[i+3], param[i+4]) + 10;
     port->setPacketTimeout((uint16_t)wait_length);
   }
@@ -1033,7 +1025,7 @@ int Protocol2PacketHandler::bulkWriteTxOnly(PortHandler *port, uint8_t *param, u
   txpacket[PKT_LENGTH_H]      = DXL_HIBYTE(param_length + 3); // 3: INST CRC16_L CRC16_H
   txpacket[PKT_INSTRUCTION]   = INST_BULK_WRITE;
 
-  for (uint8_t s = 0; s < param_length; s++)
+  for (uint16_t s = 0; s < param_length; s++)
     txpacket[PKT_PARAMETER0+s] = param[s];
   //memcpy(&txpacket[PKT_PARAMETER0], param, param_length);
 
