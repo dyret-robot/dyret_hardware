@@ -23,25 +23,27 @@
 
 #include "dyret_utils/angleConv.h"
 
-#define PROTOCOL_VERSION                1.0
-#define ADDR_MX_D_GAIN                  26
-#define ADDR_MX_I_GAIN                  27
-#define ADDR_MX_P_GAIN                  28
-#define ADDR_MX_GOAL_POSITION           30
-#define ADDR_MX_MOVING_SPEED            32
-#define ADDR_MX_PRESENT_POSITION        36
-#define ADDR_MX_CURRENT                 68
-#define ADDR_MX_TEMPERATURE             43
-#define ADDR_MX_VOLTAGE                 42
-#define ADDR_MX_TORQUE_ENABLE           24
+#define PROTOCOL_VERSION             2.0
 
-#define LEN_MX_GOAL_POSITION            2
-#define LEN_MX_MOVING_SPEED             2
-#define LEN_MX_PRESENT_POSITION         2
-#define LEN_MX_CURRENT                  2
-#define LEN_MX_TEMPERATURE              1
-#define LEN_MX_VOLTAGE                  1
-#define BAUDRATE                        1000000
+#define ADDR_MX2_D_GAIN               80
+#define ADDR_MX2_I_GAIN               82
+#define ADDR_MX2_P_GAIN               84
+#define ADDR_MX2_GOAL_POSITION       116
+#define ADDR_MX2_PRESENT_POSITION    132
+#define ADDR_MX2_CURRENT             126
+#define ADDR_MX2_TEMPERATURE         146
+#define ADDR_MX2_VOLTAGE             144
+#define ADDR_MX2_TORQUE_ENABLE        64
+#define ADDR_MX2_PROFILE_VELOCITY    112
+
+
+#define LEN_MX2_GOAL_POSITION          4
+#define LEN_MX2_PRESENT_POSITION       4
+#define LEN_MX2_CURRENT                2
+#define LEN_MX2_TEMPERATURE            1
+#define LEN_MX2_VOLTAGE                2
+#define LEN_MX2_PROFILE_VELOCITY       4
+#define BAUDRATE                 1000000
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
 using namespace dynamixel;     // Uses functions defined in ROBOTIS namespace
@@ -127,7 +129,15 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         writeSpeeds = true;
 
         int convertedSpeed = round(1023.0 * msg->servoConfigs[i].parameters[0]);
-        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, (uint8_t*) &convertedSpeed);
+
+        uint8_t param_speed[4];
+
+        param_speed[0] = DXL_LOBYTE(DXL_LOWORD(convertedSpeed));
+        param_speed[1] = DXL_HIBYTE(DXL_LOWORD(convertedSpeed));
+        param_speed[2] = DXL_LOBYTE(DXL_HIWORD(convertedSpeed));
+        param_speed[3] = DXL_HIBYTE(DXL_HIWORD(convertedSpeed));
+
+        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, param_speed);
 
         if (dxl_addparam_result != true){
             ROS_ERROR("%llu: AddParam for speedGroupSyncWriter failed",(getMs()/1000) - startTime);
@@ -136,13 +146,13 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         }
 
       } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_setPID){
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
       } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_disableTorque){
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_TORQUE_ENABLE, 0);
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_TORQUE_ENABLE, 0);
       } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_enableTorque) {
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX_TORQUE_ENABLE, 1);
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_TORQUE_ENABLE, 1);
       } else {
         ROS_ERROR("Unknown configType detected!");
       }
@@ -156,6 +166,7 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         // Clear syncwrite parameter storage
         speedGroupSyncWriter->clearParam();
     }
+
   }
 }
 
@@ -170,7 +181,14 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
 
     commandedPositions[i] = dynAngle;
 
-    bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], (uint8_t*) &dynAngle);
+    uint8_t param_goal_position[4];
+
+    param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(commandedPositions[i]));
+    param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(commandedPositions[i]));
+    param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(commandedPositions[i]));
+    param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(commandedPositions[i]));
+
+    bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], param_goal_position);
     if (dxl_addparam_result != true) ROS_ERROR("%llu: AddParam for goalAddressGroupSyncWriter failed",(getMs()/1000) - startTime);
 
   }
@@ -178,6 +196,8 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
   // Syncwrite goal position
   int dxl_comm_result = goalAddressGroupSyncWriter->txPacket();
   if (dxl_comm_result != COMM_SUCCESS) printCommResult(dxl_comm_result, "syncWrite goal positions");
+
+  printCommResult(dxl_comm_result, "syncWrite goal positions");
 
   // Clear syncwrite parameter storage
   goalAddressGroupSyncWriter->clearParam();
@@ -201,13 +221,13 @@ std::vector<double> readServoAngles(){
 
   bool dxl_getdata_result;
   for (int i = 0; i < 12; i++){
-      dxl_getdata_result = posGroupBulkReader->isAvailable(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
+      dxl_getdata_result = posGroupBulkReader->isAvailable(i, ADDR_MX2_PRESENT_POSITION, LEN_MX2_PRESENT_POSITION);
       if (dxl_getdata_result == false) {
           ROS_ERROR("%llu: posGroupBulkReader is not available",(getMs()/1000) - startTime);
           vectorToReturn.clear();
           return vectorToReturn;
       } else {
-          int dxl_present_position = posGroupBulkReader->getData(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
+          int dxl_present_position = posGroupBulkReader->getData(i, ADDR_MX2_PRESENT_POSITION, LEN_MX2_PRESENT_POSITION);
 
           //if (i == 1 || i == 5 || i == 8 || i == 10){ // Invert
           //    vectorToReturn[i] = (double) invertServoAngle(dxl_present_position);
@@ -250,13 +270,13 @@ std::vector<int> readServoVoltage(){
 
   bool dxl_getdata_result;
   for (int i = 0; i < 12; i++){
-    dxl_getdata_result = voltageGroupBulkReader->isAvailable(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+    dxl_getdata_result = voltageGroupBulkReader->isAvailable(i, ADDR_MX2_VOLTAGE, LEN_MX2_VOLTAGE);
     if (dxl_getdata_result == false) {
       ROS_ERROR("%llu: voltageGroupBulkReader is not available",(getMs()/1000) - startTime);
       vectorToReturn.clear();
       return vectorToReturn;
     } else {
-      vectorToReturn[i] = (int) voltageGroupBulkReader->getData(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+      vectorToReturn[i] = (int) voltageGroupBulkReader->getData(i, ADDR_MX2_VOLTAGE, LEN_MX2_VOLTAGE);
     }
   }
 
@@ -276,13 +296,13 @@ std::vector<int> readServoTemperature(){
 
   bool dxl_getdata_result;
   for (int i = 0; i < 12; i++){
-    dxl_getdata_result = temperatureGroupBulkReader->isAvailable(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+    dxl_getdata_result = temperatureGroupBulkReader->isAvailable(i, ADDR_MX2_TEMPERATURE, LEN_MX2_TEMPERATURE);
     if (dxl_getdata_result == false) {
       ROS_ERROR("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
       vectorToReturn.clear();
       return vectorToReturn;
     } else {
-      vectorToReturn[i] = (int) temperatureGroupBulkReader->getData(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+      vectorToReturn[i] = (int) temperatureGroupBulkReader->getData(i, ADDR_MX2_TEMPERATURE, LEN_MX2_TEMPERATURE);
     }
   }
 
@@ -302,13 +322,13 @@ std::vector<double> readServoCurrent(){
 
   bool dxl_getdata_result;
   for (int i = 0; i < 12; i++){
-      dxl_getdata_result = currentGroupBulkReader->isAvailable(i, ADDR_MX_CURRENT, LEN_MX_CURRENT);
+      dxl_getdata_result = currentGroupBulkReader->isAvailable(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT);
       if (dxl_getdata_result == false) {
           ROS_ERROR("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
           vectorToReturn.clear();
           return vectorToReturn;
       } else {
-          vectorToReturn[i] = (4.5 * ((float) currentGroupBulkReader->getData(i, ADDR_MX_CURRENT, LEN_MX_CURRENT) - 2048.0)) / 1000.0;
+          vectorToReturn[i] = (4.5 * ((float) currentGroupBulkReader->getData(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT) - 2048.0)) / 1000.0;
       }
   }
 
@@ -320,7 +340,7 @@ bool checkServoAlive(int givenId){
   uint16_t dxl_present_position = 0;              // Present position
   int dxl_comm_result = COMM_TX_FAIL;
 
-  dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, givenId, ADDR_MX_PRESENT_POSITION, &dxl_present_position, &dxl_error);
+  dxl_comm_result = packetHandler->read2ByteTxRx(portHandler, givenId, ADDR_MX2_PRESENT_POSITION, &dxl_present_position, &dxl_error);
   if (dxl_comm_result != COMM_SUCCESS)
   {
     ROS_FATAL("Error id %d: %s", givenId, packetHandler->getRxPacketError(dxl_comm_result));
@@ -397,8 +417,8 @@ int main(int argc, char **argv){
 
     portHandler = PortHandler::getPortHandler("/dev/usb2dynamixel");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
-    goalAddressGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_GOAL_POSITION, LEN_MX_GOAL_POSITION);
-    speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_MOVING_SPEED, LEN_MX_MOVING_SPEED);
+    goalAddressGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX2_GOAL_POSITION, LEN_MX2_GOAL_POSITION);
+    speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX2_PROFILE_VELOCITY, LEN_MX2_PROFILE_VELOCITY);
     posGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     currentGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     temperatureGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
@@ -423,9 +443,23 @@ int main(int argc, char **argv){
         return -1;
     }
 
+  // Enable torques:
+  for (int i = 0; i < 12; i++){
+    int dxl_comm_result = COMM_TX_FAIL;
+    uint8_t dxl_error = 0;
+
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, i, ADDR_MX2_TORQUE_ENABLE, 1, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS){
+      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    } else if (dxl_error != 0) {
+      printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+    }
+  }
+
+
   // Init posGroupBulkReader
   for (int i = 0; i < 12; i++){
-    bool dxl_addparam_result = posGroupBulkReader->addParam(i, ADDR_MX_PRESENT_POSITION, LEN_MX_PRESENT_POSITION);
+    bool dxl_addparam_result = posGroupBulkReader->addParam(i, ADDR_MX2_PRESENT_POSITION, LEN_MX2_PRESENT_POSITION);
     if (dxl_addparam_result != true) {
       ROS_FATAL("%llu: posGroupBulkReader is not available",(getMs()/1000) - startTime);
       return -1;
@@ -434,7 +468,7 @@ int main(int argc, char **argv){
 
   // Init currentGroupBulkReader
     for (int i = 0; i < 12; i++){
-      bool dxl_addparam_result = currentGroupBulkReader->addParam(i, ADDR_MX_CURRENT, LEN_MX_CURRENT);
+      bool dxl_addparam_result = currentGroupBulkReader->addParam(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT);
       if (dxl_addparam_result != true) {
         ROS_FATAL("%llu: currentGroupBulkReader is not available",(getMs()/1000) - startTime);
         return -1;
@@ -443,7 +477,7 @@ int main(int argc, char **argv){
 
   // Init temperatureGroupBulkReader
   for (int i = 0; i < 12; i++){
-    bool dxl_addparam_result = temperatureGroupBulkReader->addParam(i, ADDR_MX_TEMPERATURE, LEN_MX_TEMPERATURE);
+    bool dxl_addparam_result = temperatureGroupBulkReader->addParam(i, ADDR_MX2_TEMPERATURE, LEN_MX2_TEMPERATURE);
     if (dxl_addparam_result != true) {
       ROS_FATAL("%llu: temperatureGroupBulkReader is not available",(getMs()/1000) - startTime);
       return -1;
@@ -452,7 +486,7 @@ int main(int argc, char **argv){
 
   // Init voltageGroupBulkReader
   for (int i = 0; i < 12; i++){
-    bool dxl_addparam_result = voltageGroupBulkReader->addParam(i, ADDR_MX_VOLTAGE, LEN_MX_VOLTAGE);
+    bool dxl_addparam_result = voltageGroupBulkReader->addParam(i, ADDR_MX2_VOLTAGE, LEN_MX2_VOLTAGE);
     if (dxl_addparam_result != true) {
       ROS_FATAL("%llu: voltageGroupBulkReader is not available",(getMs()/1000) - startTime);
       return -1;
