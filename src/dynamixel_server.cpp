@@ -23,7 +23,7 @@
 
 #include "dyret_utils/angleConv.h"
 
-#define PROTOCOL_VERSION                2.0
+#define PROTOCOL_VERSION             2.0
 
 #define ADDR_MX2_D_GAIN               80
 #define ADDR_MX2_I_GAIN               82
@@ -34,13 +34,16 @@
 #define ADDR_MX2_TEMPERATURE         146
 #define ADDR_MX2_VOLTAGE             144
 #define ADDR_MX2_TORQUE_ENABLE        64
+#define ADDR_MX2_PROFILE_VELOCITY    112
+
 
 #define LEN_MX2_GOAL_POSITION          4
 #define LEN_MX2_PRESENT_POSITION       4
 #define LEN_MX2_CURRENT                2
 #define LEN_MX2_TEMPERATURE            1
 #define LEN_MX2_VOLTAGE                2
-#define BAUDRATE                    1000000
+#define LEN_MX2_PROFILE_VELOCITY       4
+#define BAUDRATE                 1000000
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
 using namespace dynamixel;     // Uses functions defined in ROBOTIS namespace
@@ -52,7 +55,7 @@ std::vector<float> commandedPositions;
 PacketHandler *packetHandler;
 PortHandler *portHandler;
 GroupSyncWrite *goalAddressGroupSyncWriter;
-//GroupSyncWrite *speedGroupSyncWriter;
+GroupSyncWrite *speedGroupSyncWriter;
 GroupBulkRead *posGroupBulkReader;
 GroupBulkRead *currentGroupBulkReader;
 GroupBulkRead *temperatureGroupBulkReader;
@@ -123,18 +126,24 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
       bool dxl_addparam_result;
 
       if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_setSpeed){
-        /*writeSpeeds = true;
+        writeSpeeds = true;
 
         int convertedSpeed = round(1023.0 * msg->servoConfigs[i].parameters[0]);
-        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, (uint8_t*) &convertedSpeed);
+
+        uint8_t param_speed[4];
+
+        param_speed[0] = DXL_LOBYTE(DXL_LOWORD(convertedSpeed));
+        param_speed[1] = DXL_HIBYTE(DXL_LOWORD(convertedSpeed));
+        param_speed[2] = DXL_LOBYTE(DXL_HIWORD(convertedSpeed));
+        param_speed[3] = DXL_HIBYTE(DXL_HIWORD(convertedSpeed));
+
+        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, param_speed);
 
         if (dxl_addparam_result != true){
             ROS_ERROR("%llu: AddParam for speedGroupSyncWriter failed",(getMs()/1000) - startTime);
             speedGroupSyncWriter->clearParam();
             return;
         }
-         */
-        ROS_ERROR("Set speed not implemented");
 
       } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_setPID){
         packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
@@ -150,7 +159,6 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
 
     }
 
-    /*
     if (writeSpeeds == true){
         int dxl_comm_result = speedGroupSyncWriter->txPacket();
         if (dxl_comm_result != COMM_SUCCESS) printCommResult(dxl_comm_result, "Writing speeds");
@@ -158,7 +166,7 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         // Clear syncwrite parameter storage
         speedGroupSyncWriter->clearParam();
     }
-     */
+
   }
 }
 
@@ -410,7 +418,7 @@ int main(int argc, char **argv){
     portHandler = PortHandler::getPortHandler("/dev/usb2dynamixel");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
     goalAddressGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX2_GOAL_POSITION, LEN_MX2_GOAL_POSITION);
-    //speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX_MOVING_SPEED, LEN_MX_MOVING_SPEED);
+    speedGroupSyncWriter = new GroupSyncWrite(portHandler, packetHandler, ADDR_MX2_PROFILE_VELOCITY, LEN_MX2_PROFILE_VELOCITY);
     posGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     currentGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
     temperatureGroupBulkReader = new GroupBulkRead(portHandler, packetHandler);
