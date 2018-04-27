@@ -25,24 +25,25 @@
 
 #define PROTOCOL_VERSION             2.0
 
+#define ADDR_MX2_TORQUE_ENABLE        64
+#define ADDR_MX2_STATUS_RETURN_LEVEL  68
 #define ADDR_MX2_D_GAIN               80
 #define ADDR_MX2_I_GAIN               82
 #define ADDR_MX2_P_GAIN               84
-#define ADDR_MX2_GOAL_POSITION       116
-#define ADDR_MX2_PRESENT_POSITION    132
-#define ADDR_MX2_CURRENT             126
-#define ADDR_MX2_TEMPERATURE         146
-#define ADDR_MX2_VOLTAGE             144
-#define ADDR_MX2_TORQUE_ENABLE        64
 #define ADDR_MX2_PROFILE_VELOCITY    112
+#define ADDR_MX2_GOAL_POSITION       116
+#define ADDR_MX2_CURRENT             126
+#define ADDR_MX2_PRESENT_POSITION    132
+#define ADDR_MX2_VOLTAGE             144
+#define ADDR_MX2_TEMPERATURE         146
 
-
-#define LEN_MX2_GOAL_POSITION          4
-#define LEN_MX2_PRESENT_POSITION       4
-#define LEN_MX2_CURRENT                2
-#define LEN_MX2_TEMPERATURE            1
-#define LEN_MX2_VOLTAGE                2
 #define LEN_MX2_PROFILE_VELOCITY       4
+#define LEN_MX2_GOAL_POSITION          4
+#define LEN_MX2_CURRENT                2
+#define LEN_MX2_PRESENT_POSITION       4
+#define LEN_MX2_VOLTAGE                2
+#define LEN_MX2_TEMPERATURE            1
+
 #define BAUDRATE                 1000000
 
 using namespace std::chrono; // Uses chrono functions for timekeeping
@@ -443,6 +444,25 @@ int main(int argc, char **argv){
         return -1;
     }
 
+  int dxl_comm_result;
+  uint8_t dxl_error = 0;
+
+  // Disable replies:
+  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, 254, ADDR_MX2_STATUS_RETURN_LEVEL, 1, &dxl_error);
+  if (dxl_comm_result != COMM_SUCCESS){
+    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  } else if (dxl_error != 0) {
+    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  }
+
+  // Enable torques:
+  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, 254, ADDR_MX2_TORQUE_ENABLE, 1, &dxl_error);
+  if (dxl_comm_result != COMM_SUCCESS){
+    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  } else if (dxl_error != 0) {
+    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  }
+
   // Enable torques:
   for (int i = 0; i < 12; i++){
     int dxl_comm_result = COMM_TX_FAIL;
@@ -455,7 +475,6 @@ int main(int argc, char **argv){
       printf("%s\n", packetHandler->getRxPacketError(dxl_error));
     }
   }
-
 
   // Init posGroupBulkReader
   for (int i = 0; i < 12; i++){
