@@ -68,9 +68,9 @@ std::vector<int> servoErrors(12);
 
 long long unsigned int startTime;
 
-int invertServoAngle(int angleInDyn){
+/*int invertServoAngle(int angleInDyn){
   return (-(angleInDyn - 2048)) + 2048;
-}
+}*/
 
 long long unsigned int getMs(){
   return std::chrono::duration_cast< std::chrono::milliseconds > (std::chrono::system_clock::now().time_since_epoch()).count();
@@ -178,20 +178,24 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
   //long long unsigned int initTime = getMs();
 
   for (int i = 0; i < msg->angle.size(); i++){
-    int dynAngle = round(((normalizeRad(msg->angle[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
+    //if (i != 0 && i != 3 && i != 6 && i != 9) {
+      int dynAngle = round(((normalizeRad(msg->angle[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
 
-    commandedPositions[i] = dynAngle;
+      //ROS_ERROR("%d: %.2f (%d)", i, msg->angle[i], dynAngle);
 
-    uint8_t param_goal_position[4];
+      commandedPositions[i] = dynAngle;
 
-    param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(commandedPositions[i]));
-    param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(commandedPositions[i]));
-    param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(commandedPositions[i]));
-    param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(commandedPositions[i]));
+      uint8_t param_goal_position[4];
 
-    bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], param_goal_position);
-    if (dxl_addparam_result != true) ROS_ERROR("%llu: AddParam for goalAddressGroupSyncWriter failed",(getMs()/1000) - startTime);
+      param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(commandedPositions[i]));
+      param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(commandedPositions[i]));
+      param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(commandedPositions[i]));
+      param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(commandedPositions[i]));
 
+      bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], param_goal_position);
+      if (dxl_addparam_result != true)
+        ROS_ERROR("%llu: AddParam for goalAddressGroupSyncWriter failed", (getMs() / 1000) - startTime);
+    //}
   }
 
   // Syncwrite goal position
@@ -234,9 +238,16 @@ std::vector<double> readServoAngles(){
           //    vectorToReturn[i] = (double) invertServoAngle(dxl_present_position);
           //} else {
               vectorToReturn[i] = (double) dxl_present_position;
+
           //}
       }
   }
+
+  /*printf("Raw angles:\n  %.2f, %.2f, %.2f\n  %.2f, %.2f, %.2f\n  %.2f, %.2f, %.2f\n  %.2f, %.2f, %.2f\n\n",
+         vectorToReturn[0],  vectorToReturn[1],  vectorToReturn[2],
+         vectorToReturn[3],  vectorToReturn[4],  vectorToReturn[5],
+         vectorToReturn[6],  vectorToReturn[7],  vectorToReturn[8],
+         vectorToReturn[9], vectorToReturn[10], vectorToReturn[11]);*/
 
   return vectorToReturn;
 }
