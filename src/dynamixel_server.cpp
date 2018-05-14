@@ -17,11 +17,8 @@
 #include "dyret_common/ServoStateArray.h"
 #include "dyret_common/ServoConfig.h"
 #include "dyret_common/ServoConfigArray.h"
-#include "dyret_common/ServoStatus.h"
-#include "dyret_common/ServoStatusArray.h"
-#include "dyret_common/GetServoStatuses.h"
 
-#include "dyret_utils/angleConv.h"
+#include "dyret_common/angleConv.h"
 
 #define PROTOCOL_VERSION             2.0
 
@@ -61,8 +58,6 @@ GroupBulkRead *posGroupBulkReader;
 GroupBulkRead *currentGroupBulkReader;
 GroupBulkRead *temperatureGroupBulkReader;
 GroupBulkRead *voltageGroupBulkReader;
-
-ros::Publisher servoStatuses_pub;
 
 std::vector<int> servoErrors(12);
 
@@ -116,9 +111,9 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
   bool writeSpeeds = false;
 
   if (msg->servoConfigs.size() == 1){
-      if (msg->servoConfigs[0].configType == msg->servoConfigs[0].t_disableLog){
+      if (msg->servoConfigs[0].type == msg->servoConfigs[0].TYPE_DISABLE_LOG){
           servoLoggingEnabled = false;
-      } else if (msg->servoConfigs[0].configType == msg->servoConfigs[0].t_enableLog){
+      } else if (msg->servoConfigs[0].type == msg->servoConfigs[0].TYPE_ENABLE_LOG){
           servoLoggingEnabled = true;
       }
 
@@ -126,10 +121,10 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
     for (int i = 0; i < msg->servoConfigs.size(); i++){
       bool dxl_addparam_result;
 
-      if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_setSpeed){
+      if (msg->servoConfigs[i].type == msg->servoConfigs[i].TYPE_SET_SPEED){
         writeSpeeds = true;
 
-        int convertedSpeed = round(1023.0 * msg->servoConfigs[i].parameters[0]);
+        int convertedSpeed = int(round(1023.0 * msg->servoConfigs[i].parameters[0]));
 
         uint8_t param_speed[4];
 
@@ -138,22 +133,22 @@ void servoConfigsCallback(const dyret_common::ServoConfigArray::ConstPtr& msg) {
         param_speed[2] = DXL_LOBYTE(DXL_HIWORD(convertedSpeed));
         param_speed[3] = DXL_HIBYTE(DXL_HIWORD(convertedSpeed));
 
-        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].servoId, param_speed);
+        dxl_addparam_result = speedGroupSyncWriter->addParam((uint8_t) msg->servoConfigs[i].id, param_speed);
 
         if (dxl_addparam_result != true){
-            ROS_ERROR("%llu: AddParam for speedGroupSyncWriter failed",(getMs()/1000) - startTime);
+            ROS_ERROR("%llu: AddParam for speedGroupSyncWriter failed!",(getMs()/1000) - startTime);
             speedGroupSyncWriter->clearParam();
             return;
         }
 
-      } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_setPID){
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
-      } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_disableTorque){
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_TORQUE_ENABLE, 0);
-      } else if (msg->servoConfigs[i].configType == msg->servoConfigs[i].t_enableTorque) {
-        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].servoId, ADDR_MX2_TORQUE_ENABLE, 1);
+      } else if (msg->servoConfigs[i].type == msg->servoConfigs[i].TYPE_SET_PID){
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].id, ADDR_MX2_P_GAIN, (int) msg->servoConfigs[i].parameters[0]); // Write P
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].id, ADDR_MX2_I_GAIN, (int) msg->servoConfigs[i].parameters[1]); // Write I
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].id, ADDR_MX2_D_GAIN, (int) msg->servoConfigs[i].parameters[2]); // Write D
+      } else if (msg->servoConfigs[i].type == msg->servoConfigs[i].TYPE_DISABLE_TORQUE){
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].id, ADDR_MX2_TORQUE_ENABLE, 0);
+      } else if (msg->servoConfigs[i].type == msg->servoConfigs[i].TYPE_ENABLE_TORQUE) {
+        packetHandler->write1ByteTxOnly(portHandler, msg->servoConfigs[i].id, ADDR_MX2_TORQUE_ENABLE, 1);
       } else {
         ROS_ERROR("Unknown configType detected!");
       }
@@ -177,9 +172,9 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
 
   //long long unsigned int initTime = getMs();
 
-  for (int i = 0; i < msg->angle.size(); i++){
+  for (int i = 0; i < msg->revolute.size(); i++){
     //if (i != 0 && i != 3 && i != 6 && i != 9) {
-      int dynAngle = round(((normalizeRad(msg->angle[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
+      int dynAngle = round(((normalizeRad(msg->revolute[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
 
       //ROS_ERROR("%d: %.2f (%d)", i, msg->angle[i], dynAngle);
 
@@ -192,7 +187,7 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr& msg) {
       param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(commandedPositions[i]));
       param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(commandedPositions[i]));
 
-      bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) msg->id[i], param_goal_position);
+      bool dxl_addparam_result = goalAddressGroupSyncWriter->addParam((uint8_t) i, param_goal_position);
       if (dxl_addparam_result != true)
         ROS_ERROR("%llu: AddParam for goalAddressGroupSyncWriter failed", (getMs() / 1000) - startTime);
     //}
@@ -376,6 +371,7 @@ bool verifyConnection(){
   return returnValue;
 }
 
+/*
 bool getServoStatuses(dyret_common::GetServoStatuses::Request  &req, dyret_common::GetServoStatuses::Response &res){
   std::vector<dyret_common::ServoStatus> servoStatuses;
   servoStatuses.resize(12);
@@ -396,7 +392,7 @@ bool getServoStatuses(dyret_common::GetServoStatuses::Request  &req, dyret_commo
   servoStatuses_pub.publish(servoStatusArrayMsg);
 
   res.servoStatuses = servoStatuses;
-}
+}*/
 
 int main(int argc, char **argv){
     startTime = getMs() / 1000;
@@ -419,13 +415,10 @@ int main(int argc, char **argv){
 
     ROS_INFO("Dynamixel_server initialized");
 
-    ros::ServiceServer service = n.advertiseService("/dyret/servoStatuses", getServoStatuses);
-
     ros::Subscriber servoConfigs_sub = n.subscribe("/dyret/servoConfigs", 10, servoConfigsCallback);
     ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
 
     ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
-    servoStatuses_pub = n.advertise<dyret_common::ServoStatusArray>("/dyret/servoStatuses", 5);
 
     portHandler = PortHandler::getPortHandler("/dev/usb2dynamixel");
     packetHandler = PacketHandler::getPacketHandler(PROTOCOL_VERSION);
@@ -553,8 +546,7 @@ int main(int argc, char **argv){
       lastStatusSent = getMs();
     }*/
 
-    std::vector<dyret_common::ServoState> servoStates;
-    servoStates.resize(12);
+    boost::array<dyret_common::ServoState,12> servoStates;
 
     // Update servo angles and current every other run:
     if (readingAngles == true) servoAngles = readServoAngles(); else servoCurrents = readServoCurrent();
@@ -564,7 +556,6 @@ int main(int argc, char **argv){
 
       // Build servoStates array
       for (int i = 0; i < servoAngles.size(); i++){
-          servoStates[i].id = i;
           servoStates[i].position = dyn2rad(servoAngles[i]);
           servoStates[i].current = fabs(servoCurrents[i]);
       }
@@ -582,7 +573,7 @@ int main(int argc, char **argv){
           if (invalidData == false){
 
             dyret_common::ServoStateArray servoStateArrayMsg;
-            servoStateArrayMsg.servoStates = servoStates;
+            servoStateArrayMsg.revolute = servoStates;
             servoStates_pub.publish(servoStateArrayMsg);
 
 /*            if (servoLoggingEnabled == true){

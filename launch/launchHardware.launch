@@ -19,6 +19,6 @@
     <param name="timeout" value="0.0025" />
   </node>
 
-  <include file="$(find mocap_optitrack)/launch/mocap.launch"/>
+<!--  <include file="$(find mocap_optitrack)/launch/mocap.launch"/> -->
 
 </launch>
