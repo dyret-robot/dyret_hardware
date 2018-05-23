@@ -1,11 +1,5 @@
 <launch>
-  <!--<node pkg="tonnesfn_experiments" name="hardwareTest" type="hardwareTest" />-->
   <node pkg="dyret_hardware" name="dynamixel_server" type="dynamixel_server" />
-
-  <node pkg="dyret_controller" name="gaitController" type="gaitController" />
-  <node pkg="dyret_controller" name="gaitEvaluator" type="gaitEvaluator" />
-  <node pkg="dyret_controller" name="trajectoryController" type="trajectoryController" />
-  <node pkg="dyret_controller" name="inverseKinematicsService" type="inverseKinematicsService" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
     <param name="port" value="/dev/actuatorBoard" />
@@ -19,6 +13,6 @@
     <param name="timeout" value="0.0025" />
   </node>
 
-<!--  <include file="$(find mocap_optitrack)/launch/mocap.launch"/> -->
+  <include file="$(find mocap_optitrack)/launch/mocap.launch"/>
 
 </launch>
