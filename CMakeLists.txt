@@ -19,8 +19,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-
-add_executable(dynamixel_server src/dynamixel_server.cpp
+add_executable(hardware_manager src/hardware_manager.cpp
+    src/dynamixel_wrapper.cpp
     src/dynamixel_sdk/packet_handler.cpp
     src/dynamixel_sdk/protocol1_packet_handler.cpp
     src/dynamixel_sdk/protocol2_packet_handler.cpp
@@ -29,19 +29,19 @@ add_executable(dynamixel_server src/dynamixel_server.cpp
     src/dynamixel_sdk/group_bulk_read.cpp
     src/dynamixel_sdk/group_bulk_write.cpp
     src/dynamixel_sdk/port_handler.cpp
-    src/dynamixel_sdk/port_handler_linux.cpp    
+    src/dynamixel_sdk/port_handler_linux.cpp
 )
 
+add_dependencies(hardware_manager ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(hardware_manager ${catkin_LIBRARIES})
 
-add_dependencies(dynamixel_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(dynamixel_server ${catkin_LIBRARIES})
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
-install(TARGETS dynamixel_server
+install(TARGETS hardware_manager
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)

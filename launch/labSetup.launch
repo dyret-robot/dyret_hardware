@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="dyret_hardware" name="dynamixel_server" type="dynamixel_server" />
+  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
     <param name="port" value="/dev/actuatorBoard" />
