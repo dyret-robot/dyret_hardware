@@ -9,6 +9,8 @@
 #include "dyret_common/ServoConfigs.h"
 #include "dyret_common/angleConv.h"
 
+#include "dyret_common/ConfigureServos.h"
+
 #include "dynamixel_wrapper.h"
 
 // Received a dynamixel message:
@@ -20,14 +22,15 @@ void dynCommandsCallback(const dyret_common::Pose::ConstPtr &msg) {
 
 }
 
-// Received a servo configuration message:
-void servoConfigsCallback(const dyret_common::ServoConfigs::ConstPtr &msg) {
-  std::vector<int> servoIds;
-  for (int i = 0; i < msg->ids.size(); i++) servoIds.push_back(msg->ids[i]);
-  std::vector<float> parameters;
-  for (int i = 0; i < msg->parameters.size(); i++) servoIds.push_back(msg->parameters[i]);
+bool servoConfigCallback(dyret_common::ConfigureServos::Request  &req,
+                         dyret_common::ConfigureServos::Response &res) {
 
-  switch (msg->type) {
+  std::vector<int> servoIds;
+  for (int i = 0; i < req.configurations.ids.size(); i++) servoIds.push_back(req.configurations.ids[i]);
+  std::vector<float> parameters;
+  for (int i = 0; i < req.configurations.parameters.size(); i++) parameters.push_back(req.configurations.parameters[i]);
+
+  switch (req.configurations.type) {
     case dyret_common::ServoConfigs::TYPE_DISABLE_LOG:
       // Disable logging here
       ROS_ERROR("Disabling servo logging not yet implemented!");
@@ -53,6 +56,9 @@ void servoConfigsCallback(const dyret_common::ServoConfigs::ConstPtr &msg) {
       break;
   }
 
+  res.status = res.STATUS_NOERROR;
+
+  return true;
 }
 
 int main(int argc, char **argv) {
@@ -61,7 +67,7 @@ int main(int argc, char **argv) {
 
   ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
 
-  ros::Subscriber servoConfigs_sub = n.subscribe("/dyret/servoConfigs", 10, servoConfigsCallback);
+  ros::ServiceServer service = n.advertiseService("/dyret/configure_servos", servoConfigCallback);
   ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
