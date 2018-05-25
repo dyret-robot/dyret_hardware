@@ -14,7 +14,7 @@
 #include "dynamixel_wrapper.h"
 
 // Received a dynamixel message:
-void dynCommandsCallback(const dyret_common::Pose::ConstPtr &msg) {
+void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
   if (msg->revolute.size() != 0) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
 
   ros::ServiceServer service = n.advertiseService("/dyret/configure_servos", servoConfigCallback);
-  ros::Subscriber dynCommands_sub = n.subscribe("/dyret/dynCommands", 1, dynCommandsCallback);
+  ros::Subscriber poseCommand_sub = n.subscribe("/dyret/pose_command", 1, poseCommandCallback);
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
