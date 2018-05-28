@@ -15,11 +15,21 @@
 
 #include "dynamixel_wrapper.h"
 
+ros::Publisher actuatorCommandPub;
+
 // Received a pose message::
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
   if (msg->revolute.size() != 0) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
+  }
+  if (msg->prismatic.size() != 0){
+    dyret_common::ActuatorCommand actuatorCommandMsg;
+
+    actuatorCommandMsg.length.resize((msg->prismatic.size()));
+    actuatorCommandMsg.length = msg->prismatic;
+
+    actuatorCommandPub.publish(actuatorCommandMsg);
   }
 
 }
@@ -75,6 +85,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
 
   ros::Publisher servoStates_pub = n.advertise<dyret_common::ServoStateArray>("/dyret/servoStates", 5);
+  actuatorCommandPub = n.advertise<dyret_common::ActuatorCommand>("/dyret/actuator_board/command", 1);
 
   ros::ServiceServer service = n.advertiseService("/dyret/configure_servos", servoConfigCallback);
   ros::Subscriber poseCommand_sub = n.subscribe("/dyret/pose_command", 1, poseCommandCallback);
