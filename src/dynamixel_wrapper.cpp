@@ -211,7 +211,7 @@ void printCommResult(int dxl_comm_result, std::string givenString) {
 bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
 
   if (servoIds.size() != servoSpeeds.size()) {
-    ROS_ERROR("Received servo configuration with unequal lengths of servoIds (%u) and servoSpeeds (%u)", servoIds.size(), servoSpeeds.size());
+    ROS_ERROR("Received servo configuration with unequal lengths of servoIds (%lu) and servoSpeeds (%lu)", servoIds.size(), servoSpeeds.size());
     return false;
   }
 

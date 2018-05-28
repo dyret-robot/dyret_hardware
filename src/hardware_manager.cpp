@@ -8,17 +8,26 @@
 #include "dyret_common/ServoStateArray.h"
 #include "dyret_common/ServoConfigs.h"
 #include "dyret_common/angleConv.h"
+#include "dyret_common/ActuatorStates.h"
+#include "dyret_common/ActuatorCommand.h"
 
 #include "dyret_common/ConfigureServos.h"
 
 #include "dynamixel_wrapper.h"
 
-// Received a dynamixel message:
+// Received a pose message::
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
   if (msg->revolute.size() != 0) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
   }
+
+}
+
+// Received an actuatorBoardState message:
+void actuatorBoardStatesCallback(const dyret_common::ActuatorStates::ConstPtr &msg) {
+
+  printf("Received actuatorState!\n");
 
 }
 
@@ -69,6 +78,7 @@ int main(int argc, char **argv) {
 
   ros::ServiceServer service = n.advertiseService("/dyret/configure_servos", servoConfigCallback);
   ros::Subscriber poseCommand_sub = n.subscribe("/dyret/pose_command", 1, poseCommandCallback);
+  ros::Subscriber actuatorBoardStates_sub = n.subscribe("/dyret/actuator_board/states", 1, actuatorBoardStatesCallback);
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
