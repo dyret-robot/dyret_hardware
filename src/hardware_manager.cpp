@@ -16,6 +16,7 @@
 #include "dynamixel_wrapper.h"
 
 ros::Publisher actuatorCommandPub;
+boost::array<float,8> prismaticPositions;
 
 // Received a pose message::
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
@@ -37,8 +38,9 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 // Received an actuatorBoardState message:
 void actuatorBoardStatesCallback(const dyret_common::ActuatorStates::ConstPtr &msg) {
 
-  printf("Received actuatorState!\n");
-
+  for (int i = 0; i < msg->position.size(); i++){
+    prismaticPositions[i] = msg->position[i];
+  }
 }
 
 bool servoConfigCallback(dyret_common::ConfigureServos::Request  &req,
@@ -113,6 +115,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < servoStates.revolute.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
     }
+
+    servoStates.prismatic = prismaticPositions;
 
     servoStates_pub.publish(servoStates);
 
