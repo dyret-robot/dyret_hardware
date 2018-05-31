@@ -4,9 +4,22 @@ project(dyret_hardware)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -std=c++11 -march=native" )
 
 find_package(catkin REQUIRED COMPONENTS 
+  message_generation
   roscpp 
   std_msgs 
   dyret_common
+)
+
+add_message_files(
+  DIRECTORY msg
+  FILES
+  ActuatorBoardCommand.msg
+  ActuatorBoardState.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 catkin_package(

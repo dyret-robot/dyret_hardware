@@ -7,8 +7,8 @@
 #include "dyret_common/State.h"
 #include "dyret_common/Configuration.h"
 #include "dyret_common/angleConv.h"
-#include "dyret_common/ActuatorBoardState.h"
-#include "dyret_common/ActuatorBoardCommand.h"
+#include "dyret_hardware/ActuatorBoardState.h"
+#include "dyret_hardware/ActuatorBoardCommand.h"
 
 #include "dyret_common/Configure.h"
 
@@ -24,7 +24,7 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
   }
   if (msg->prismatic.size() != 0){
-    dyret_common::ActuatorBoardCommand actuatorCommandMsg;
+    dyret_hardware::ActuatorBoardCommand actuatorCommandMsg;
 
     actuatorCommandMsg.length.resize((msg->prismatic.size()));
     actuatorCommandMsg.length = msg->prismatic;
@@ -35,7 +35,7 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 }
 
 // Received an actuatorBoardState message:
-void actuatorBoardStatesCallback(const dyret_common::ActuatorBoardState::ConstPtr &msg) {
+void actuatorBoardStatesCallback(const dyret_hardware::ActuatorBoardState::ConstPtr &msg) {
 
   for (int i = 0; i < msg->position.size(); i++){
     prismaticPositions[i] = (float) msg->position[i];
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
 
   ros::Publisher servoStates_pub = n.advertise<dyret_common::State>("/dyret/state", 5);
-  actuatorCommandPub = n.advertise<dyret_common::ActuatorBoardCommand>("/dyret/actuator_board/command", 1);
+  actuatorCommandPub = n.advertise<dyret_hardware::ActuatorBoardCommand>("/dyret/actuator_board/command", 1);
 
   ros::ServiceServer service = n.advertiseService("/dyret/configuration", servoConfigCallback);
   ros::Subscriber poseCommand_sub = n.subscribe("/dyret/command", 1, poseCommandCallback);
