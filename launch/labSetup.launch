@@ -1,18 +1,7 @@
 <launch>
-  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" />
+  <include file="$(find dyret_hardware)/launch/standalone.launch" />
 
-  <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
-    <param name="port" value="/dev/actuatorBoard" />
-  </node>
-
-  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" >
-    <param name="frame_id" value="/imu" />
-    <param name="frame_local" value="ENU" />
-    <param name="device" value="/dev/dyretImu" />
-    <param name="baudrate" value="0" />
-    <param name="timeout" value="0.0025" />
-  </node>
-
-  <include file="$(find mocap_optitrack)/launch/mocap.launch"/>
+  <remap from="/Robot_1/pose" to="/dyret/sensor/pose" />
+  <include file="$(find mocap_optitrack)/launch/mocap.launch" />
 
 </launch>
