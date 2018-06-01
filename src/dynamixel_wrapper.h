@@ -18,6 +18,9 @@ void setServoAngles(std::vector<float> anglesInRad);
 // Set servo speeds as floats between 0 and 1
 bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds);
 
+// Set servo PIDS, three parameters per servo ID
+bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs);
+
 // Get servo angles in radians from the servos stated in servoIds vector
 std::vector<float> getServoAngles(std::vector<int> servoIds);
 

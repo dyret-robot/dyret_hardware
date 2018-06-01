@@ -35,6 +35,11 @@
 #define LEN_MX2_VOLTAGE                2
 #define LEN_MX2_TEMPERATURE            1
 
+//TODO: fix I gain when dynamixel documentation is updated
+#define FACT_MX2_P_GAIN              128
+#define FACT_MX2_I_GAIN                0
+#define FACT_MX2_D_GAIN               16
+
 #define BAUDRATE                 1000000
 
 namespace dynamixel_wrapper {
@@ -235,11 +240,12 @@ bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
 
   }
 
-  bool dxl_comm_result = speedGroupSyncWriter->txPacket();
+  int dxl_comm_result = speedGroupSyncWriter->txPacket();
   if (dxl_comm_result != COMM_SUCCESS) printCommResult(dxl_comm_result, "Writing speeds");
 
   speedGroupSyncWriter->clearParam();
 
+  return true;
 }
 
 void setServoAngles(std::vector<float> anglesInRad) {
@@ -263,6 +269,21 @@ void setServoAngles(std::vector<float> anglesInRad) {
 
   goalAddressGroupSyncWriter->clearParam();
 
+}
+
+bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
+  int dxl_comm_result;
+
+  for (int i = 0; i < servoIds.size(); i++){
+    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_P_GAIN, static_cast<uint16_t>(trunc(servoPIDs[i*3] * FACT_MX2_P_GAIN)));     // Write P
+    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "P_GAIN"); return false; }
+    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_I_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * FACT_MX2_I_GAIN))); // Write I
+    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "I_GAIN"); return false; }
+    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_D_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+2] * FACT_MX2_D_GAIN))); // Write D
+    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "D_GAIN"); return false; }
+
+  }
+  return true;
 }
 
 std::vector<float> getServoAngles(std::vector<int> servoIds){

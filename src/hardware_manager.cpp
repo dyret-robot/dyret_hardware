@@ -58,10 +58,18 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
       ROS_ERROR("Setting servo torque not yet implemented!");
       break;
     case dyret_common::RevoluteConfig::TYPE_SET_SPEED:
-      dynamixel_wrapper::setServoSpeeds(servoIds, parameters);
+      if (dynamixel_wrapper::setServoSpeeds(servoIds, parameters)) {
+        ROS_INFO("Servo speeds set");
+      } else {
+        ROS_ERROR("Servo speeds NOT set");
+      }
       break;
     case dyret_common::RevoluteConfig::TYPE_SET_PID:
-      ROS_ERROR("Setting servo PIDs not yet implemented!");
+      if(dynamixel_wrapper::setServoPIDs(servoIds, parameters)){
+        ROS_INFO("Servo PIDs set");
+      } else {
+        ROS_INFO("Servo PIDs NOT set");
+      }
       break;
     default:
       ROS_ERROR("Unknown servo configType detected!");
