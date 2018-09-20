@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cmath>
 #include <ctime>
-#include <jmorecfg.h>
 
 #include "ros/ros.h"
 #include "ros/console.h"
