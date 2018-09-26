@@ -1,8 +1,8 @@
 <launch>
 	<!-- Remap raw driver topics into DyRET sensor -->
-	<remap from="/optoforce_0" to="/dyret/sensor/contact/fl" />
+	<remap from="/optoforce_2" to="/dyret/sensor/contact/fl" />
 	<remap from="/optoforce_1" to="/dyret/sensor/contact/fr" />
-	<remap from="/optoforce_2" to="/dyret/sensor/contact/br" />
+	<remap from="/optoforce_0" to="/dyret/sensor/contact/br" />
 	<remap from="/optoforce_3" to="/dyret/sensor/contact/bl" />
 
 	<!-- Launch optoforce USB driver: -->
