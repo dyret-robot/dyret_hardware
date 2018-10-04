@@ -53,6 +53,41 @@ dynamixel::GroupBulkRead *currentGroupBulkReader;
 dynamixel::GroupBulkRead *temperatureGroupBulkReader;
 dynamixel::GroupBulkRead *voltageGroupBulkReader;
 
+void printCommResult(int dxl_comm_result, std::string givenString) {
+
+    switch (dxl_comm_result) {
+        case COMM_SUCCESS:
+            ROS_INFO("COMM_SUCCESS (%s)", givenString.c_str());
+            break;
+        case COMM_PORT_BUSY:
+            ROS_WARN("COMM_PORT_BUSY (%s)", givenString.c_str());
+            break;
+        case COMM_TX_FAIL:
+            ROS_WARN("COMM_TX_FAIL (%s)", givenString.c_str());
+            break;
+        case COMM_RX_FAIL:
+            ROS_WARN("COMM_RX_FAIL (%s)", givenString.c_str());
+            break;
+        case COMM_TX_ERROR:
+            ROS_WARN("COMM_TX_ERROR (%s)", givenString.c_str());
+            break;
+        case COMM_RX_WAITING:
+            ROS_WARN("COMM_RX_WAITING (%s)", givenString.c_str());
+            break;
+        case COMM_RX_TIMEOUT:
+            ROS_WARN("COMM_RX_TIMEOUT (%s)", givenString.c_str());
+            break;
+        case COMM_RX_CORRUPT:
+            ROS_WARN("COMM_RX_CORRUPT (%s)", givenString.c_str());
+            break;
+        case COMM_NOT_AVAILABLE:
+            ROS_ERROR("COMM_NOT_AVAILABLE (%s)", givenString.c_str());
+            break;
+        default:
+            ROS_ERROR("Unknown: %d (%s)", dxl_comm_result, givenString.c_str());
+    }
+}
+
 bool checkServoAlive(int givenId) {
   uint8_t dxl_error = 0;                          // Dynamixel error
   uint16_t dxl_present_position = 0;              // Present position
@@ -81,6 +116,21 @@ bool verifyConnection() {
 
   if (returnValue == true) ROS_INFO("All servos connected");
   return returnValue;
+}
+
+bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
+    int dxl_comm_result;
+
+    for (int i = 0; i < servoIds.size(); i++){
+        dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_P_GAIN, static_cast<uint16_t>(trunc(servoPIDs[i*3] * FACT_MX2_P_GAIN)));     // Write P
+        if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "P_GAIN"); return false; }
+        dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_I_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * FACT_MX2_I_GAIN))); // Write I
+        if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "I_GAIN"); return false; }
+        dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_D_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+2] * FACT_MX2_D_GAIN))); // Write D
+        if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "D_GAIN"); return false; }
+
+    }
+    return true;
 }
 
 bool initializeServos(std::vector<int> givenServoIds){
@@ -135,6 +185,15 @@ bool initializeServos(std::vector<int> givenServoIds){
     return false;
   }
 
+  // Set default PID values:
+  std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  std::vector<float> servoPIDs = {4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05};
+
+  setServoPIDs(servoIds, servoPIDs);
+
   // Init posGroupBulkReader
   for (int i = 0; i < 12; i++) {
     bool dxl_addparam_result = posGroupBulkReader->addParam(i, ADDR_MX2_PRESENT_POSITION, LEN_MX2_PRESENT_POSITION);
@@ -176,41 +235,6 @@ bool initializeServos(std::vector<int> givenServoIds){
 
 void closeServoConnection(){
   portHandler->closePort();
-}
-
-void printCommResult(int dxl_comm_result, std::string givenString) {
-
-  switch (dxl_comm_result) {
-    case COMM_SUCCESS:
-      ROS_INFO("COMM_SUCCESS (%s)", givenString.c_str());
-      break;
-    case COMM_PORT_BUSY:
-      ROS_WARN("COMM_PORT_BUSY (%s)", givenString.c_str());
-      break;
-    case COMM_TX_FAIL:
-      ROS_WARN("COMM_TX_FAIL (%s)", givenString.c_str());
-      break;
-    case COMM_RX_FAIL:
-      ROS_WARN("COMM_RX_FAIL (%s)", givenString.c_str());
-      break;
-    case COMM_TX_ERROR:
-      ROS_WARN("COMM_TX_ERROR (%s)", givenString.c_str());
-      break;
-    case COMM_RX_WAITING:
-      ROS_WARN("COMM_RX_WAITING (%s)", givenString.c_str());
-      break;
-    case COMM_RX_TIMEOUT:
-      ROS_WARN("COMM_RX_TIMEOUT (%s)", givenString.c_str());
-      break;
-    case COMM_RX_CORRUPT:
-      ROS_WARN("COMM_RX_CORRUPT (%s)", givenString.c_str());
-      break;
-    case COMM_NOT_AVAILABLE:
-      ROS_ERROR("COMM_NOT_AVAILABLE (%s)", givenString.c_str());
-      break;
-    default:
-      ROS_ERROR("Unknown: %d (%s)", dxl_comm_result, givenString.c_str());
-  }
 }
 
 bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
@@ -269,21 +293,6 @@ void setServoAngles(std::vector<float> anglesInRad) {
 
   goalAddressGroupSyncWriter->clearParam();
 
-}
-
-bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
-  int dxl_comm_result;
-
-  for (int i = 0; i < servoIds.size(); i++){
-    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_P_GAIN, static_cast<uint16_t>(trunc(servoPIDs[i*3] * FACT_MX2_P_GAIN)));     // Write P
-    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "P_GAIN"); return false; }
-    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_I_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * FACT_MX2_I_GAIN))); // Write I
-    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "I_GAIN"); return false; }
-    dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_D_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+2] * FACT_MX2_D_GAIN))); // Write D
-    if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "D_GAIN"); return false; }
-
-  }
-  return true;
 }
 
 std::vector<float> getServoAngles(std::vector<int> servoIds){

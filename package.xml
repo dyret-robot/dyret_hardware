@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>dyret_hardware</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>The dyret_hardware package</description>
 
   <maintainer email="tonnesfn@ifi.uio.no">tonnesfn</maintainer>
