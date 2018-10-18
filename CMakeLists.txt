@@ -1,7 +1,10 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1)
 project(dyret_hardware)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -std=c++11 -march=native" )
+# This is allowed as of Melodic
+set(CMAKE_CXX_STANDARD 14)
+# Set warning flags to get prettiest and good C++
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wno-unused")
 
 find_package(catkin REQUIRED COMPONENTS 
   message_generation
@@ -28,6 +31,7 @@ catkin_package(
 )
 
 include_directories(
+  SYSTEM
   include/dynamixel_sdk
   ${catkin_INCLUDE_DIRS}
 )

@@ -37,8 +37,8 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 // Received an actuatorBoardState message:
 void actuatorBoardStatesCallback(const dyret_hardware::ActuatorBoardState::ConstPtr &msg) {
 
-  for (int i = 0; i < msg->position.size(); i++){
-    prismaticPositions[i] = (float) msg->position[i];
+  for (size_t i = 0; i < msg->position.size(); i++){
+    prismaticPositions[i] = static_cast<float>(msg->position[i]);
   }
 }
 
@@ -46,9 +46,9 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
                          dyret_common::Configure::Response &res) {
 
   std::vector<int> servoIds;
-  for (int i = 0; i < req.configuration.revolute.ids.size(); i++) servoIds.push_back(req.configuration.revolute.ids[i]);
+  for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++) servoIds.push_back(req.configuration.revolute.ids[i]);
   std::vector<float> parameters;
-  for (int i = 0; i < req.configuration.revolute.parameters.size(); i++) parameters.push_back(req.configuration.revolute.parameters[i]);
+  for (size_t i = 0; i < req.configuration.revolute.parameters.size(); i++) parameters.push_back(req.configuration.revolute.parameters[i]);
 
   switch (req.configuration.revolute.type) {
     case dyret_common::RevoluteConfig::TYPE_DISABLE_TORQUE:
@@ -111,11 +111,11 @@ int main(int argc, char **argv) {
 
     std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
 
-    for (int i = 0; i < servoAngles.size(); i++) {
+    for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
     }
 
-    for (int i = 0; i < prismaticPositions.size(); i++) {
+    for (size_t i = 0; i < prismaticPositions.size(); i++) {
       servoStates.prismatic[i].position = prismaticPositions[i];
     }
 
