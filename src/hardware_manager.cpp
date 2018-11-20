@@ -17,14 +17,19 @@
 ros::Publisher actuatorCommandPub;
 boost::array<float,8> prismaticPositions;
 std::vector<float> prismaticCommands;
+std::vector<float> revoluteCommands;
 
 
 // Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
+  // Handle revolute:
   if (msg->revolute.size() != 0) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
+    revoluteCommands = msg->revolute;
   }
+
+  // Handle prismatic:
   if (msg->prismatic.size() != 0){
     dyret_hardware::ActuatorBoardCommand actuatorCommandMsg;
 
@@ -116,6 +121,7 @@ int main(int argc, char **argv) {
   }
 
   prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  revoluteCommands  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   while (ros::ok()) {
 
@@ -129,6 +135,8 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
       servoStates.revolute[i].temperature = servoTemperatures[i];
+      servoStates.revolute[i].set_point = revoluteCommands[i];
+      servoStates.revolute[i].error = servoAngles[i] - revoluteCommands[i];
     }
 
     // Set for prismatic joints:
@@ -137,7 +145,6 @@ int main(int argc, char **argv) {
       servoStates.prismatic[i].set_point = prismaticCommands[i];
       servoStates.prismatic[i].error = prismaticPositions[i] - prismaticCommands[i];
     }
-
 
     servoStates_pub.publish(servoStates);
 
