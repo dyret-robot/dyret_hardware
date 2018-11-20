@@ -1,0 +1,20 @@
+<launch>
+	<!-- Remap raw driver topics into DyRET sensor -->
+	<remap from="/optoforce_2" to="/dyret/sensor/contact/fl" />
+	<remap from="/optoforce_1" to="/dyret/sensor/contact/fr" />
+	<remap from="/optoforce_0" to="/dyret/sensor/contact/br" />
+	<remap from="/optoforce_3" to="/dyret/sensor/contact/bl" />
+
+	<!-- Launch optoforce USB driver: -->
+	<node name="optoforce_driver" pkg="optoforce" type="optoforce_node.py"
+		output="screen">
+		<param name="port" value="/dev/ttyACM0" />
+		<param name="speed" value="100Hz" />
+		<param name="filter" value="50Hz" />
+		<param name="zero" value="true" />
+		<param name="type" value="m-ch/3-axis" />
+		<param name="starting_index" value="0" />
+		<rosparam command="load"
+			file="$(find dyret_hardware)/cfg/optoforce_scale.yaml" />
+	</node>
+</launch>

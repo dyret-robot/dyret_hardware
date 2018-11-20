@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cmath>
 #include <ctime>
-#include <jmorecfg.h>
 
 #include "ros/ros.h"
 #include "ros/console.h"
@@ -121,7 +120,7 @@ bool verifyConnection() {
 bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
     int dxl_comm_result;
 
-    for (int i = 0; i < servoIds.size(); i++){
+    for (size_t i = 0; i < servoIds.size(); i++){
         dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_P_GAIN, static_cast<uint16_t>(trunc(servoPIDs[i*3] * FACT_MX2_P_GAIN)));     // Write P
         if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "P_GAIN"); return false; }
         dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_I_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * FACT_MX2_I_GAIN))); // Write I
@@ -187,10 +186,10 @@ bool initializeServos(std::vector<int> givenServoIds){
 
   // Set default PID values:
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-  std::vector<float> servoPIDs = {4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
-                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
-                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
-                                  4.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05};
+  std::vector<float> servoPIDs = {8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05};
 
   setServoPIDs(servoIds, servoPIDs);
 
@@ -244,7 +243,7 @@ bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
     return false;
   }
 
-  for (int i = 0; i < servoIds.size(); i++) {
+  for (size_t i = 0; i < servoIds.size(); i++) {
     int convertedSpeed = int(round(1023.0 * servoSpeeds[i]));
 
     uint8_t param_speed[4];
@@ -273,7 +272,7 @@ bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
 }
 
 void setServoAngles(std::vector<float> anglesInRad) {
-  for (int i = 0; i < anglesInRad.size(); i++) {
+  for (size_t i = 0; i < anglesInRad.size(); i++) {
     auto dynAngle = (int) round(((normalizeRad(anglesInRad[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
 
     uint8_t param_goal_position[4];
@@ -350,8 +349,8 @@ std::vector<float> getServoVoltages(){
   return vectorToReturn;
 }
 
-std::vector<int> getServoTemperatures(){
-  std::vector<int> vectorToReturn(12);
+std::vector<float> getServoTemperatures(){
+  std::vector<float> vectorToReturn(12);
 
   int dxl_comm_result = temperatureGroupBulkReader->txRxPacket();
 

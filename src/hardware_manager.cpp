@@ -16,18 +16,34 @@
 
 ros::Publisher actuatorCommandPub;
 boost::array<float,8> prismaticPositions;
+std::vector<float> prismaticCommands;
+std::vector<float> revoluteCommands;
 
-// Received a pose message::
+
+// Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
+  // Handle revolute:
   if (msg->revolute.size() != 0) {
     dynamixel_wrapper::setServoAngles(msg->revolute);
+    revoluteCommands = msg->revolute;
   }
+
+  // Handle prismatic:
   if (msg->prismatic.size() != 0){
     dyret_hardware::ActuatorBoardCommand actuatorCommandMsg;
 
     actuatorCommandMsg.length.resize((msg->prismatic.size()));
     actuatorCommandMsg.length = msg->prismatic;
+
+    if (msg->prismatic.size() == 2){
+        prismaticCommands = {msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1]};
+    } else {
+        ROS_ERROR("Unsupported prismatic length!");
+    }
 
     actuatorCommandPub.publish(actuatorCommandMsg);
   }
@@ -37,8 +53,8 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 // Received an actuatorBoardState message:
 void actuatorBoardStatesCallback(const dyret_hardware::ActuatorBoardState::ConstPtr &msg) {
 
-  for (int i = 0; i < msg->position.size(); i++){
-    prismaticPositions[i] = (float) msg->position[i];
+  for (size_t i = 0; i < msg->position.size(); i++){
+    prismaticPositions[i] = static_cast<float>(msg->position[i]);
   }
 }
 
@@ -46,9 +62,9 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
                          dyret_common::Configure::Response &res) {
 
   std::vector<int> servoIds;
-  for (int i = 0; i < req.configuration.revolute.ids.size(); i++) servoIds.push_back(req.configuration.revolute.ids[i]);
+  for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++) servoIds.push_back(req.configuration.revolute.ids[i]);
   std::vector<float> parameters;
-  for (int i = 0; i < req.configuration.revolute.parameters.size(); i++) parameters.push_back(req.configuration.revolute.parameters[i]);
+  for (size_t i = 0; i < req.configuration.revolute.parameters.size(); i++) parameters.push_back(req.configuration.revolute.parameters[i]);
 
   switch (req.configuration.revolute.type) {
     case dyret_common::RevoluteConfig::TYPE_DISABLE_TORQUE:
@@ -104,6 +120,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  revoluteCommands  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   while (ros::ok()) {
 
@@ -111,14 +129,22 @@ int main(int argc, char **argv) {
 
     std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
 
-    for (int i = 0; i < servoAngles.size(); i++) {
+    std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
+
+    // Set for revolute joints:
+    for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
+      servoStates.revolute[i].temperature = servoTemperatures[i];
+      servoStates.revolute[i].set_point = revoluteCommands[i];
+      servoStates.revolute[i].error = servoAngles[i] - revoluteCommands[i];
     }
 
-    for (int i = 0; i < prismaticPositions.size(); i++) {
+    // Set for prismatic joints:
+    for (size_t i = 0; i < prismaticPositions.size(); i++) {
       servoStates.prismatic[i].position = prismaticPositions[i];
+      servoStates.prismatic[i].set_point = prismaticCommands[i];
+      servoStates.prismatic[i].error = prismaticPositions[i] - prismaticCommands[i];
     }
-
 
     servoStates_pub.publish(servoStates);
 

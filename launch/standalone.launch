@@ -1,4 +1,8 @@
 <launch>
+  <!-- Should contact sensors be enabled? -->
+  <arg name="contact_enabled" default="false"
+	  doc="Enable OptoForce contact sensors" />
+
   <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
@@ -22,4 +26,7 @@
     <rosparam param="angular_velocity_covariance_diagonal" subst_value="True">[0.0004, 0.0004, 0.0004]</rosparam>
   </node>
 
+  <!-- If `contact_enabled` we launch optoforce driver -->
+  <include if="$(arg contact_enabled)"
+	  file="$(find dyret_hardware)/launch/optoforce.launch" />
 </launch>
