@@ -111,6 +111,8 @@ int main(int argc, char **argv) {
 
     std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
 
+    std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
+
     for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
     }
@@ -119,6 +121,9 @@ int main(int argc, char **argv) {
       servoStates.prismatic[i].position = prismaticPositions[i];
     }
 
+    for (size_t i = 0; i < servoAngles.size(); i++) {
+      servoStates.revolute[i].temperature = servoTemperatures[i];
+    }
 
     servoStates_pub.publish(servoStates);
 

@@ -52,3 +52,7 @@ add_executable(hardware_manager src/hardware_manager.cpp
 add_dependencies(hardware_manager ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(hardware_manager ${catkin_LIBRARIES})
 
+add_executable(tmpMon src/tmpMon.cpp)
+
+add_dependencies(tmpMon ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(tmpMon ${catkin_LIBRARIES})

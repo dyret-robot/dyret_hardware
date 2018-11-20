@@ -31,6 +31,6 @@ std::vector<float> getServoVoltages();
 std::vector<float> getServoCurrents();
 
 // Get servo temperature in celsius from the servos stated in servoIds vector
-std::vector<int> getServoTemperatures();
+std::vector<float> getServoTemperatures();
 
 }
