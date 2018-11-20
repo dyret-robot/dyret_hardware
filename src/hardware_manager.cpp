@@ -16,8 +16,10 @@
 
 ros::Publisher actuatorCommandPub;
 boost::array<float,8> prismaticPositions;
+std::vector<float> prismaticCommands;
 
-// Received a pose message::
+
+// Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
   if (msg->revolute.size() != 0) {
@@ -28,6 +30,15 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
     actuatorCommandMsg.length.resize((msg->prismatic.size()));
     actuatorCommandMsg.length = msg->prismatic;
+
+    if (msg->prismatic.size() == 2){
+        prismaticCommands = {msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1],
+                             msg->prismatic[0], msg->prismatic[1]};
+    } else {
+        ROS_ERROR("Unsupported prismatic length!");
+    }
 
     actuatorCommandPub.publish(actuatorCommandMsg);
   }
@@ -104,6 +115,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   while (ros::ok()) {
 
@@ -113,17 +125,19 @@ int main(int argc, char **argv) {
 
     std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
 
+    // Set for revolute joints:
     for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
-    }
-
-    for (size_t i = 0; i < prismaticPositions.size(); i++) {
-      servoStates.prismatic[i].position = prismaticPositions[i];
-    }
-
-    for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].temperature = servoTemperatures[i];
     }
+
+    // Set for prismatic joints:
+    for (size_t i = 0; i < prismaticPositions.size(); i++) {
+      servoStates.prismatic[i].position = prismaticPositions[i];
+      servoStates.prismatic[i].set_point = prismaticCommands[i];
+      servoStates.prismatic[i].error = prismaticPositions[i] - prismaticCommands[i];
+    }
+
 
     servoStates_pub.publish(servoStates);
 
