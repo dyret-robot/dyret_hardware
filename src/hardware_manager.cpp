@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
-  sleep(3); // Delay to allow IMU node to start first before using USB serial ports
+  sleep(5); // Delay to allow IMU node to start first before using USB serial ports
 
   if (dynamixel_wrapper::initializeServos(servoIds)) {
     ROS_INFO("Successfully initialized servos");
