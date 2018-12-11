@@ -127,6 +127,8 @@ int main(int argc, char **argv) {
 
     dyret_common::State servoStates;
 
+    servoStates.header.stamp = ros::Time().now();
+
     std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
 
     std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
