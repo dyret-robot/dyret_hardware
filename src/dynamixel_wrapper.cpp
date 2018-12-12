@@ -96,7 +96,7 @@ bool checkServoAlive(int givenId) {
                                                  &dxl_present_position,
                                                  &dxl_error);
   if (dxl_comm_result != COMM_SUCCESS) {
-    ROS_FATAL("Error id %d: %s", givenId, packetHandler->getRxPacketError(dxl_comm_result));
+    ROS_FATAL("Error %d for id %d: \"%s\"", dxl_comm_result, givenId, packetHandler->getRxPacketError(dxl_comm_result));
     return false;
   }
 
@@ -123,11 +123,13 @@ bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
     for (size_t i = 0; i < servoIds.size(); i++){
         dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_P_GAIN, static_cast<uint16_t>(trunc(servoPIDs[i*3] * FACT_MX2_P_GAIN)));     // Write P
         if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "P_GAIN"); return false; }
+        usleep(100);
         dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_I_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * FACT_MX2_I_GAIN))); // Write I
         if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "I_GAIN"); return false; }
+        usleep(100);
         dxl_comm_result = packetHandler->write2ByteTxOnly(portHandler, (uint8_t) servoIds[i], ADDR_MX2_D_GAIN, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+2] * FACT_MX2_D_GAIN))); // Write D
         if (dxl_comm_result != COMM_SUCCESS){ printCommResult(dxl_comm_result, "D_GAIN"); return false; }
-
+        usleep(100);
     }
     return true;
 }
@@ -170,10 +172,10 @@ bool initializeServos(std::vector<int> givenServoIds){
   // Disable replies:
   dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, 254, ADDR_MX2_STATUS_RETURN_LEVEL, 1, &dxl_error);
   if (dxl_comm_result != COMM_SUCCESS) {
-    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    printf("%d: %s\n", dxl_comm_result, packetHandler->getTxRxResult(dxl_error));
     return false;
   } else if (dxl_error != 0) {
-    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+    printf("%d: %s\n", dxl_error, packetHandler->getRxPacketError(dxl_error));
     return false;
   }
 
