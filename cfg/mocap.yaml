@@ -12,3 +12,4 @@ optitrack_config:
         multicast_address: 239.255.42.100
         command_port: 1510
         data_port: 1511
+        version: [3,1,0,0]
