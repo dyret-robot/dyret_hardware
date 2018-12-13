@@ -148,18 +148,19 @@ bool initializeServos(std::vector<int> givenServoIds){
   voltageGroupBulkReader = new dynamixel::GroupBulkRead(portHandler, packetHandler);
 
   // Open port
-  if (portHandler->openPort()) {
+  /*if (portHandler->openPort()) {
     ROS_INFO("OpenPort succeeded");
   } else {
-    ROS_FATAL("OpenPort failed");
-    return -1;
-  }
+    ROS_ERROR("OpenPort failed");
+    return false;
+  }*/
+
   // Set port baudrate
   if (portHandler->setBaudRate(BAUDRATE)) {
     ROS_INFO("SetBaudRate succeeded!");
   } else {
-    ROS_FATAL("SetBaudRate failed!");
-    return -1;
+    ROS_ERROR("SetBaudRate failed!");
+    return false;
   }
 
   if (verifyConnection() == false) {
