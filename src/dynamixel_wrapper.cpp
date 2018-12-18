@@ -241,9 +241,18 @@ void closeServoConnection(){
 
 bool setServoSpeeds(std::vector<int> servoIds, std::vector<float> servoSpeeds){
 
+  // Verify vector lengths
   if (servoIds.size() != servoSpeeds.size()) {
     ROS_ERROR("Received servo configuration with unequal lengths of servoIds (%lu) and servoSpeeds (%lu)", servoIds.size(), servoSpeeds.size());
     return false;
+  }
+
+  // Verify servo speed values
+  for(size_t i = 0; i < servoSpeeds.size(); i++) {
+      if (servoSpeeds[i] < 0.0 || servoSpeeds[i] > 1.0){
+          ROS_ERROR("Invalid speed received for servo %d with value %f", servoIds[i], servoSpeeds[i]);
+          return false;
+      }
   }
 
   for (size_t i = 0; i < servoIds.size(); i++) {
@@ -290,8 +299,6 @@ void setServoAngles(std::vector<float> anglesInRad) {
 
   int dxl_comm_result = goalAddressGroupSyncWriter->txPacket();
   if (dxl_comm_result != COMM_SUCCESS) printCommResult(dxl_comm_result, "syncWrite goal positions");
-
-  printCommResult(dxl_comm_result, "syncWrite goal positions");
 
   goalAddressGroupSyncWriter->clearParam();
 
