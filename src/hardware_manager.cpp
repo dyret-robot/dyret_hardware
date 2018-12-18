@@ -121,22 +121,44 @@ int main(int argc, char **argv) {
   prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   revoluteCommands  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
+  int counter = 0;
+  std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
+  std::vector<float> servoCurrents = dynamixel_wrapper::getServoCurrents();
+  std::vector<float> servoVoltages = dynamixel_wrapper::getServoVoltages();
+  std::vector<float> servoVelocities = dynamixel_wrapper::getServoVelocities();
+
   while (ros::ok()) {
 
-    dyret_common::State servoStates;
-
-    servoStates.header.stamp = ros::Time().now();
-
+    // Read information from servos. Angle each time, and the others one at a time:
     std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
 
-    std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
+    if (counter == 0) {
+        servoTemperatures = dynamixel_wrapper::getServoTemperatures();
+    } else if (counter == 1){
+        servoCurrents = dynamixel_wrapper::getServoCurrents();
+    } else if (counter == 2){
+        servoVoltages = dynamixel_wrapper::getServoVoltages();
+    } else if (counter == 3){
+        servoVelocities = dynamixel_wrapper::getServoVelocities();
+    }
+
+    counter++;
+
+    if (counter == 4) counter = 0;
+
+    // Prepare and send message
+    dyret_common::State servoStates;
+    servoStates.header.stamp = ros::Time().now();
 
     // Set for revolute joints:
     for (size_t i = 0; i < servoAngles.size(); i++) {
       servoStates.revolute[i].position = servoAngles[i];
       servoStates.revolute[i].temperature = servoTemperatures[i];
+      servoStates.revolute[i].current = servoCurrents[i];
+      servoStates.revolute[i].voltage = servoVoltages[i];
       servoStates.revolute[i].set_point = revoluteCommands[i];
       servoStates.revolute[i].error = servoAngles[i] - revoluteCommands[i];
+      servoStates.revolute[i].velocity = servoVelocities[i];
     }
 
     // Set for prismatic joints:
@@ -148,6 +170,7 @@ int main(int argc, char **argv) {
 
     servoStates_pub.publish(servoStates);
 
+    // SpinOnce to receive new messages from ROS
     ros::spinOnce();
   }
 

@@ -23,6 +23,7 @@
 #define ADDR_MX2_PROFILE_VELOCITY    112
 #define ADDR_MX2_GOAL_POSITION       116
 #define ADDR_MX2_CURRENT             126
+#define ADDR_MX2_VELOCITY            128
 #define ADDR_MX2_PRESENT_POSITION    132
 #define ADDR_MX2_VOLTAGE             144
 #define ADDR_MX2_TEMPERATURE         146
@@ -30,6 +31,7 @@
 #define LEN_MX2_PROFILE_VELOCITY       4
 #define LEN_MX2_GOAL_POSITION          4
 #define LEN_MX2_CURRENT                2
+#define LEN_MX2_VELOCITY               4
 #define LEN_MX2_PRESENT_POSITION       4
 #define LEN_MX2_VOLTAGE                2
 #define LEN_MX2_TEMPERATURE            1
@@ -51,6 +53,7 @@ dynamixel::GroupBulkRead *posGroupBulkReader;
 dynamixel::GroupBulkRead *currentGroupBulkReader;
 dynamixel::GroupBulkRead *temperatureGroupBulkReader;
 dynamixel::GroupBulkRead *voltageGroupBulkReader;
+dynamixel::GroupBulkRead *velocityGroupBulkReader;
 
 void printCommResult(int dxl_comm_result, std::string givenString) {
 
@@ -146,14 +149,7 @@ bool initializeServos(std::vector<int> givenServoIds){
   currentGroupBulkReader = new dynamixel::GroupBulkRead(portHandler, packetHandler);
   temperatureGroupBulkReader = new dynamixel::GroupBulkRead(portHandler, packetHandler);
   voltageGroupBulkReader = new dynamixel::GroupBulkRead(portHandler, packetHandler);
-
-  // Open port
-  /*if (portHandler->openPort()) {
-    ROS_INFO("OpenPort succeeded");
-  } else {
-    ROS_ERROR("OpenPort failed");
-    return false;
-  }*/
+  velocityGroupBulkReader = new dynamixel::GroupBulkRead(portHandler, packetHandler);
 
   // Set port baudrate
   if (portHandler->setBaudRate(BAUDRATE)) {
@@ -228,6 +224,15 @@ bool initializeServos(std::vector<int> givenServoIds){
     bool dxl_addparam_result = voltageGroupBulkReader->addParam(i, ADDR_MX2_VOLTAGE, LEN_MX2_VOLTAGE);
     if (dxl_addparam_result != true) {
       ROS_FATAL("voltageGroupBulkReader is not available");
+      return false;
+    }
+  }
+
+  // Init voltageGroupBulkReader
+  for (int i = 0; i < 12; i++) {
+    bool dxl_addparam_result = velocityGroupBulkReader->addParam(i, ADDR_MX2_VELOCITY, LEN_MX2_VELOCITY);
+    if (dxl_addparam_result != true) {
+      ROS_FATAL("velocityGroupBulkReader is not available");
       return false;
     }
   }
@@ -359,13 +364,39 @@ std::vector<float> getServoVoltages(){
   return vectorToReturn;
 }
 
+std::vector<float> getServoVelocities(){
+  std::vector<float> vectorToReturn(12);
+
+  int dxl_comm_result = velocityGroupBulkReader->txRxPacket();
+
+  if (dxl_comm_result != COMM_SUCCESS) {
+    printCommResult(dxl_comm_result, "voltageGroupBulkReader");
+    vectorToReturn.clear();
+    return vectorToReturn;
+  }
+
+  bool dxl_getdata_result;
+  for (int i = 0; i < 12; i++) {
+    dxl_getdata_result = velocityGroupBulkReader->isAvailable(i, ADDR_MX2_VELOCITY, LEN_MX2_VELOCITY);
+    if (dxl_getdata_result == false) {
+      ROS_ERROR("velocityGroupBulkReader is not available");
+      vectorToReturn.clear();
+      return vectorToReturn;
+     } else {
+       vectorToReturn[i] = velocityGroupBulkReader->getData(i, ADDR_MX2_VELOCITY, LEN_MX2_VELOCITY);
+     }
+  }
+
+  return vectorToReturn;
+}
+
 std::vector<float> getServoTemperatures(){
   std::vector<float> vectorToReturn(12);
 
   int dxl_comm_result = temperatureGroupBulkReader->txRxPacket();
 
   if (dxl_comm_result != COMM_SUCCESS) {
-    printCommResult(dxl_comm_result, "currentGroupBulkReader");
+    printCommResult(dxl_comm_result, "temperatureGroupBulkReader");
     vectorToReturn.clear();
     return vectorToReturn;
   }
@@ -404,7 +435,8 @@ std::vector<float> getServoCurrents(){
       vectorToReturn.clear();
       return vectorToReturn;
     } else {
-      vectorToReturn[i] = (4.5f * ((float) currentGroupBulkReader->getData(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT) - 2048.0f)) / 1000.0f;
+      //vectorToReturn[i] = (3.36f * ((float) currentGroupBulkReader->getData(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT) - 65535.5f)) / 1000.0f;
+        vectorToReturn[i] = (float) currentGroupBulkReader->getData(i, ADDR_MX2_CURRENT, LEN_MX2_CURRENT);
     }
   }
 

@@ -24,13 +24,16 @@ bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs);
 // Get servo angles in radians from the servos stated in servoIds vector
 std::vector<float> getServoAngles(std::vector<int> servoIds);
 
-// Get servo voltage in volt from the servos stated in servoIds vector
+// Get servo voltage in volt from the servos
 std::vector<float> getServoVoltages();
 
-// Get servo current in ampere from the servos stated in servoIds vector
+// Get servo current in ampere from the servos
 std::vector<float> getServoCurrents();
 
-// Get servo temperature in celsius from the servos stated in servoIds vector
+// Get servo temperature in celsius from the servos
 std::vector<float> getServoTemperatures();
+
+// Get servo velocities in rpm from the servos
+std::vector<float> getServoVelocities();
 
 }
