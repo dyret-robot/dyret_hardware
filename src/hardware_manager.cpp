@@ -68,10 +68,15 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
 
   switch (req.configuration.revolute.type) {
     case dyret_common::RevoluteConfig::TYPE_DISABLE_TORQUE:
-      ROS_ERROR("Setting servo torque not yet implemented!");
+      for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++){
+        dynamixel_wrapper::disableTorque(req.configuration.revolute.ids[i]);
+      }
+
       break;
     case dyret_common::RevoluteConfig::TYPE_ENABLE_TORQUE:
-      ROS_ERROR("Setting servo torque not yet implemented!");
+      for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++){
+        dynamixel_wrapper::enableTorque(req.configuration.revolute.ids[i]);
+      }
       break;
     case dyret_common::RevoluteConfig::TYPE_SET_SPEED:
       if (dynamixel_wrapper::setServoSpeeds(servoIds, parameters)) {

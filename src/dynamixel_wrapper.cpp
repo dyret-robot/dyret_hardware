@@ -137,6 +137,24 @@ bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
     return true;
 }
 
+bool enableTorque(int givenServoId){
+    int dxl_comm_result = packetHandler->write1ByteTxOnly(portHandler, givenServoId, ADDR_MX2_TORQUE_ENABLE, 1);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        return false;
+    }
+    return true;
+}
+
+bool disableTorque(int givenServoId){
+    int dxl_comm_result = packetHandler->write1ByteTxOnly(portHandler, givenServoId, ADDR_MX2_TORQUE_ENABLE, 0);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        return false;
+    }
+    return true;
+}
+
 bool initializeServos(std::vector<int> givenServoIds){
 
   portHandler = dynamixel::PortHandler::getPortHandler("/dev/usb2dynamixel");
@@ -176,12 +194,8 @@ bool initializeServos(std::vector<int> givenServoIds){
     return false;
   }
 
-  // Enable torques:
-  dxl_comm_result = packetHandler->write1ByteTxOnly(portHandler, 254, ADDR_MX2_TORQUE_ENABLE, 1);
-  if (dxl_comm_result != COMM_SUCCESS) {
-    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-    return false;
-  }
+  // Enable torque for all servos (broadcast ID):
+  enableTorque(254);
 
   // Set default PID values:
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};

@@ -36,4 +36,8 @@ std::vector<float> getServoTemperatures();
 // Get servo velocities in rpm from the servos
 std::vector<float> getServoVelocities();
 
+bool enableTorque(int givenServoId);
+
+bool disableTorque(int givenServoId);
+
 }
