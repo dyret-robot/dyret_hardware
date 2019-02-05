@@ -18,19 +18,19 @@ ros::Publisher actuatorCommandPub;
 boost::array<float,8> prismaticPositions;
 std::vector<float> prismaticCommands;
 std::vector<float> revoluteCommands;
-
+bool receivedCommand = false;
 
 // Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
 
   // Handle revolute:
-  if (msg->revolute.size() != 0) {
-    dynamixel_wrapper::setServoAngles(msg->revolute);
+  if (!msg->revolute.empty()) {
+    receivedCommand = true;
     revoluteCommands = msg->revolute;
   }
 
   // Handle prismatic:
-  if (msg->prismatic.size() != 0){
+  if (!msg->prismatic.empty()){
     dyret_hardware::ActuatorBoardCommand actuatorCommandMsg;
 
     actuatorCommandMsg.length.resize((msg->prismatic.size()));
@@ -150,6 +150,11 @@ int main(int argc, char **argv) {
     counter++;
 
     if (counter == 4) counter = 0;
+
+    // Send angles to servos:
+    if (receivedCommand) {
+      dynamixel_wrapper::setServoAngles(revoluteCommands);
+    }
 
     // Prepare and send message
     dyret_common::State servoStates;
