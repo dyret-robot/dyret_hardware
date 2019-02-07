@@ -157,7 +157,7 @@ bool disableTorque(int givenServoId){
 
 bool initializeServos(std::vector<int> givenServoIds){
 
-  portHandler = dynamixel::PortHandler::getPortHandler("/dev/usb2dynamixel");
+  portHandler = dynamixel::PortHandler::getPortHandler("/dev/dyretDynamixel");
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
   goalAddressGroupSyncWriter = new dynamixel::GroupSyncWrite(portHandler, packetHandler, ADDR_MX2_GOAL_POSITION,
                                                   LEN_MX2_GOAL_POSITION);

@@ -6,7 +6,7 @@
   <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
-    <param name="port" value="/dev/actuatorBoard" />
+    <param name="port" value="/dev/dyretActuatorBoard" />
   </node>
 
   <remap from="/imu/data" to="/dyret/sensor/imu" />
