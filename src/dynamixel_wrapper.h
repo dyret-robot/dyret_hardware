@@ -6,7 +6,7 @@
 namespace dynamixel_wrapper {
 
 // This initializes the port and all servos
-bool initializeServos(std::vector<int> givenServoIds);
+bool initializeServos();
 
 // Closes the serial port
 void closeServoConnection();
@@ -36,8 +36,8 @@ std::vector<float> getServoTemperatures();
 // Get servo velocities in rpm from the servos
 std::vector<float> getServoVelocities();
 
-bool enableTorque(int givenServoId);
+bool enableTorque(uint8_t givenServoId);
 
-bool disableTorque(int givenServoId);
+bool disableTorque(uint8_t givenServoId);
 
 }

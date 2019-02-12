@@ -137,7 +137,7 @@ bool setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
     return true;
 }
 
-bool enableTorque(int givenServoId){
+bool enableTorque(uint8_t givenServoId){
     int dxl_comm_result = packetHandler->write1ByteTxOnly(portHandler, givenServoId, ADDR_MX2_TORQUE_ENABLE, 1);
     if (dxl_comm_result != COMM_SUCCESS) {
         printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
@@ -146,7 +146,7 @@ bool enableTorque(int givenServoId){
     return true;
 }
 
-bool disableTorque(int givenServoId){
+bool disableTorque(uint8_t givenServoId){
     int dxl_comm_result = packetHandler->write1ByteTxOnly(portHandler, givenServoId, ADDR_MX2_TORQUE_ENABLE, 0);
     if (dxl_comm_result != COMM_SUCCESS) {
         printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
@@ -155,7 +155,52 @@ bool disableTorque(int givenServoId){
     return true;
 }
 
-bool initializeServos(std::vector<int> givenServoIds){
+bool disableReplies(uint8_t givenServoId){
+    uint8_t dxl_error = 0;
+    int dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, givenServoId, ADDR_MX2_STATUS_RETURN_LEVEL, 1, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        printf("%d: %s\n", dxl_comm_result, packetHandler->getTxRxResult(dxl_error));
+        return false;
+    } else if (dxl_error != 0) {
+        printf("%d: %s\n", dxl_error, packetHandler->getRxPacketError(dxl_error));
+        return false;
+    }
+    return true;
+}
+
+bool rebootServo(uint8_t givenServoId){
+    uint8_t dxl_error = 0;
+    int dxl_comm_result = packetHandler->reboot(portHandler, givenServoId, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        printf("%d: %s\n", dxl_comm_result, packetHandler->getTxRxResult(dxl_error));
+        return false;
+    } else if (dxl_error != 0) {
+        printf("%d: %s\n", dxl_error, packetHandler->getRxPacketError(dxl_error));
+        return false;
+    }
+    return true;
+}
+
+bool resetServo(uint8_t givenServoId){
+
+    // Reboot servos
+    if (!rebootServo(givenServoId)) return false;
+    usleep(1000000); // Sleep 1 sec to allow full reboot
+
+    // Disable replies
+    if (!disableReplies(givenServoId)) return false;
+    usleep(1000);
+
+    // Enable torque
+    if (!enableTorque(givenServoId)) return false;
+    usleep(1000);
+
+    return true;
+}
+
+
+
+bool initializeServos(){
 
   portHandler = dynamixel::PortHandler::getPortHandler("/dev/dyretDynamixel");
   packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
@@ -181,21 +226,7 @@ bool initializeServos(std::vector<int> givenServoIds){
     return false;
   }
 
-  int dxl_comm_result;
-  uint8_t dxl_error = 0;
-
-  // Disable replies:
-  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, 254, ADDR_MX2_STATUS_RETURN_LEVEL, 1, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS) {
-    printf("%d: %s\n", dxl_comm_result, packetHandler->getTxRxResult(dxl_error));
-    return false;
-  } else if (dxl_error != 0) {
-    printf("%d: %s\n", dxl_error, packetHandler->getRxPacketError(dxl_error));
-    return false;
-  }
-
-  // Enable torque for all servos (broadcast ID):
-  enableTorque(254);
+  resetServo(254); // Reset all servos (broadcast ID)
 
   // Set default PID values:
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};

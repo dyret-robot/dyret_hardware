@@ -3,7 +3,7 @@
   <arg name="contact_enabled" default="false"
 	  doc="Enable OptoForce contact sensors" />
 
-  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" />
+  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" output="screen" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
     <param name="port" value="/dev/dyretActuatorBoard" />
