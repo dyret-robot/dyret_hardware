@@ -41,9 +41,12 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
                              msg->prismatic[0], msg->prismatic[1],
                              msg->prismatic[0], msg->prismatic[1],
                              msg->prismatic[0], msg->prismatic[1]};
-    } else {
+    } else if (msg->prismatic.size() == 8) {
+        prismaticCommands = msg->prismatic;
+    }else {
         ROS_ERROR("Unsupported prismatic length!");
     }
+
 
     actuatorCommandPub.publish(actuatorCommandMsg);
   }
