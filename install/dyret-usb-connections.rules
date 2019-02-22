@@ -3,4 +3,5 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="d
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2639", ATTRS{idProduct}=="0003", SYMLINK+="dyretImu"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="dyretDynamixel"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="06a7", SYMLINK+="dyretDynamixel"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", SYMLINK+="dyretOptoforce"
 
