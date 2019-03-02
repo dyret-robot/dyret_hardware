@@ -1,4 +1,5 @@
-#include "hardware_manager.h"
+#include "../include/dyret_hardware/dynamixel_wrapper.hpp"
+#include "dyret_hardware/MX106.hpp"
 
 #include "ros/ros.h"
 #include "ros/console.h"
@@ -12,13 +13,15 @@
 
 #include "dyret_common/Configure.h"
 
-#include "dynamixel_wrapper.h"
-
 ros::Publisher actuatorCommandPub;
 boost::array<float,8> prismaticPositions;
 std::vector<float> prismaticCommands;
 std::vector<float> revoluteCommands;
 bool receivedCommand = false;
+
+std::vector<dynamixel_wrapper::ServoState> states;
+std::vector<dynamixel_wrapper::WriteValue> goal_pos;
+std::unique_ptr<dynamixel_wrapper::Wrapper> iface;
 
 // Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
@@ -26,7 +29,14 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
   // Handle revolute:
   if (!msg->revolute.empty()) {
     receivedCommand = true;
-    revoluteCommands = msg->revolute;
+    goal_pos.clear();
+
+    for (size_t i = 0; i < 12; i++) {
+      dynamixel_wrapper::WriteValue v;
+      v.id = (uint8_t) i;
+      v.value = (uint32_t) round(((normalizeRad(msg->revolute[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
+      goal_pos.push_back(v);
+    }
   }
 
   // Handle prismatic:
@@ -71,29 +81,35 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
 
   switch (req.configuration.revolute.type) {
     case dyret_common::RevoluteConfig::TYPE_DISABLE_TORQUE:
-      for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++){
-        dynamixel_wrapper::disableTorque(req.configuration.revolute.ids[i]);
-      }
+      iface.get()->setTorque(false);
 
       break;
     case dyret_common::RevoluteConfig::TYPE_ENABLE_TORQUE:
-      for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++){
-        dynamixel_wrapper::enableTorque(req.configuration.revolute.ids[i]);
-      }
+      iface.get()->setTorque(true);
+      ROS_INFO("Enabled torque");
       break;
-    case dyret_common::RevoluteConfig::TYPE_SET_SPEED:
-      if (dynamixel_wrapper::setServoSpeeds(servoIds, parameters)) {
-        ROS_INFO("Servo speeds set");
-      } else {
-        ROS_ERROR("Servo speeds NOT set");
+    case dyret_common::RevoluteConfig::TYPE_SET_SPEED: {
+      std::vector<dynamixel_wrapper::WriteValue> speeds;
+
+      for (size_t i = 0; i < req.configuration.revolute.ids.size(); i++) {
+        dynamixel_wrapper::WriteValue v;
+        v.id = (uint8_t) i;
+        v.value = (uint32_t) (req.configuration.revolute.parameters[i] * 1023.0);
+        speeds.push_back(v);
       }
+
+      iface->set_velocity(speeds);
+
+      ROS_INFO("Servo speeds set");
       break;
+    }
     case dyret_common::RevoluteConfig::TYPE_SET_PID:
-      if(dynamixel_wrapper::setServoPIDs(servoIds, parameters)){
+      /*if(dynamixel_wrapper::setServoPIDs(servoIds, parameters)){
         ROS_INFO("Servo PIDs set");
       } else {
         ROS_INFO("Servo PIDs NOT set");
-      }
+      }*/
+      ROS_ERROR("Servo PIDs NOT set");
       break;
     default:
       ROS_ERROR("Unknown servo configType detected!");
@@ -109,6 +125,10 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "hardware_manager");
   ros::NodeHandle n;
 
+  dynamixel_wrapper::Wrapper wrapper;
+
+  iface = std::unique_ptr<dynamixel_wrapper::Wrapper>(new dynamixel_wrapper::Wrapper());
+
   ros::Publisher servoStates_pub = n.advertise<dyret_common::State>("/dyret/state", 5);
   actuatorCommandPub = n.advertise<dyret_hardware::ActuatorBoardCommand>("/dyret/actuator_board/command", 1);
 
@@ -118,60 +138,38 @@ int main(int argc, char **argv) {
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
-  if (dynamixel_wrapper::initializeServos()) {
-    ROS_INFO("Successfully initialized servos");
-  } else {
-    ROS_FATAL("Could not initialize dynamixel connection");
-    ros::shutdown();
-    return 1;
-  }
-
   prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   revoluteCommands  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   int counter = 0;
-  std::vector<float> servoTemperatures = dynamixel_wrapper::getServoTemperatures();
-  std::vector<float> servoCurrents = dynamixel_wrapper::getServoCurrents();
-  std::vector<float> servoVoltages = dynamixel_wrapper::getServoVoltages();
-  std::vector<float> servoVelocities = dynamixel_wrapper::getServoVelocities();
+
+  iface.get()->setTorque(true);
 
   while (ros::ok()) {
 
-    // Read information from servos. Angle each time, and the others one at a time:
-    std::vector<float> servoAngles = dynamixel_wrapper::getServoAngles(servoIds);
-
-    if (counter == 0) {
-        servoTemperatures = dynamixel_wrapper::getServoTemperatures();
-    } else if (counter == 1){
-        servoCurrents = dynamixel_wrapper::getServoCurrents();
-    } else if (counter == 2){
-        servoVoltages = dynamixel_wrapper::getServoVoltages();
-    } else if (counter == 3){
-        servoVelocities = dynamixel_wrapper::getServoVelocities();
-    }
-
-    counter++;
-
-    if (counter == 4) counter = 0;
+    auto res = iface.get()->read_state(states);
 
     // Send angles to servos:
     if (receivedCommand) {
-      dynamixel_wrapper::setServoAngles(revoluteCommands);
+      iface.get()->set_goal_position(goal_pos);
     }
 
     // Prepare and send message
     dyret_common::State servoStates;
     servoStates.header.stamp = ros::Time().now();
 
-    // Set for revolute joints:
-    for (size_t i = 0; i < servoAngles.size(); i++) {
-      servoStates.revolute[i].position = servoAngles[i];
-      servoStates.revolute[i].temperature = servoTemperatures[i];
-      servoStates.revolute[i].current = servoCurrents[i];
-      servoStates.revolute[i].voltage = servoVoltages[i];
-      servoStates.revolute[i].set_point = revoluteCommands[i];
-      servoStates.revolute[i].error = servoAngles[i] - revoluteCommands[i];
-      servoStates.revolute[i].velocity = servoVelocities[i];
+    // Copy data
+    for(size_t i = 0; i < states.size(); i++) {
+      const size_t id = static_cast<size_t>(states[i].id);
+      servoStates.revolute[id].position = dyn2rad(states[i].position);
+      servoStates.revolute[id].velocity = mx106::velocity_from_raw(states[i].velocity);
+      servoStates.revolute[id].current = mx106::current_from_raw(states[i].current);
+      servoStates.revolute[id].voltage = mx106::voltage_from_raw(states[i].input_voltage);
+      servoStates.revolute[id].temperature = mx106::temp_from_raw(states[i].temperature);
+      if(goal_pos.size() > id) {
+        servoStates.revolute[id].set_point = dyn2rad(goal_pos[i].value);
+        servoStates.revolute[id].error = servoStates.revolute[id].position - servoStates.revolute[id].set_point;
+      }
     }
 
     // Set for prismatic joints:
@@ -187,7 +185,7 @@ int main(int argc, char **argv) {
     ros::spinOnce();
   }
 
-  dynamixel_wrapper::closeServoConnection();
+  //dynamixel_wrapper::closeServoConnection();
   ros::shutdown();
   return 0;
 }
