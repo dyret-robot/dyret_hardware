@@ -70,6 +70,8 @@ namespace dynamixel_wrapper {
     // Note: Input argument is the returned state
     ComError read_state(std::vector<ServoState> &);
 
+    // Set servo PIDS
+    ComError setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs);
 
     ComError disableReplies();
 

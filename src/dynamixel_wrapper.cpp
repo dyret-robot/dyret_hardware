@@ -169,6 +169,23 @@ namespace dynamixel_wrapper {
     return os;
   }
 
+  ComError Wrapper::setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs){
+    int dxl_comm_result;
+
+    for (size_t i = 0; i < servoIds.size(); i++){
+        dxl_comm_result = packet->write2ByteTxOnly(port.get(), (uint8_t) servoIds[i], MX106_P_GAIN_ADDR, static_cast<uint16_t>(trunc(servoPIDs[i*3] * 128)));     // Write P
+        if (dxl_comm_result != COMM_SUCCESS) return static_cast<ComError>(dxl_comm_result);
+        usleep(100);
+        dxl_comm_result = packet->write2ByteTxOnly(port.get(), (uint8_t) servoIds[i], MX106_I_GAIN_ADDR, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+1] * 0))); // Write I
+        if (dxl_comm_result != COMM_SUCCESS) return static_cast<ComError>(dxl_comm_result);
+        usleep(100);
+        dxl_comm_result = packet->write2ByteTxOnly(port.get(), (uint8_t) servoIds[i], MX106_D_GAIN_ADDR, static_cast<uint16_t>(trunc(servoPIDs[(i*3)+2] * 16))); // Write D
+        if (dxl_comm_result != COMM_SUCCESS) return static_cast<ComError>(dxl_comm_result);
+        usleep(100);
+    }
+    return ComError::Success;
+  }
+
   ComError Wrapper::disableReplies(){
     uint8_t dxl_error = 0;
     int dxl_comm_result = packet->write1ByteTxRx(port.get(), BROADCAST_ID, MX106_STATUS_RETURN_LEVEL_ADDR, 1, &dxl_error);

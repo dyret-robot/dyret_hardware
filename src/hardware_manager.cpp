@@ -84,12 +84,28 @@ void setLowSpeed(){
   iface.get()->set_velocity(speeds);
 }
 
+void setServoPIDs(){
+  std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  std::vector<float> servoPIDs = {8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05,
+                                  8.0, 0.0, 0.05, 6.6, 0.0, 0.05, 6.6, 0.0, 0.05};
+
+  if (iface->setServoPIDs(servoIds, servoPIDs) != dynamixel_wrapper::ComError::Success){
+    ROS_ERROR("Could not set servo PIDs");
+  } else {
+    ROS_INFO("Servo PIDs set");
+  }
+}
+
 void restartServos(){
   iface->restartServos();
   sleep(3);
   iface->setTorque(true);
   usleep(1000);
   iface->disableReplies();
+  usleep(1000);
+  setServoPIDs();
   usleep(1000);
   setLowSpeed();
   usleep(1000);
@@ -127,12 +143,11 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
       break;
     }
     case dyret_common::RevoluteConfig::TYPE_SET_PID:
-      /*if(dynamixel_wrapper::setServoPIDs(servoIds, parameters)){
+      if(iface.get()->setServoPIDs(servoIds, parameters) == dynamixel_wrapper::ComError::Success){
         ROS_INFO("Servo PIDs set");
       } else {
         ROS_INFO("Servo PIDs NOT set");
-      }*/
-      ROS_ERROR("Servo PIDs NOT set");
+      }
       break;
     case dyret_common::RevoluteConfig::TYPE_RESTART:
       ROS_ERROR("Restarting servos");
@@ -173,6 +188,8 @@ int main(int argc, char **argv) {
   iface.get()->setTorque(true);
   usleep(1000);
   iface->disableReplies();
+  usleep(1000);
+  setServoPIDs();
   usleep(1000);
 
   while (ros::ok()) {
