@@ -71,6 +71,28 @@ void actuatorBoardStatesCallback(const dyret_hardware::ActuatorBoardState::Const
   }
 }
 
+void setLowSpeed(){
+  std::vector<dynamixel_wrapper::WriteValue> speeds;
+
+  for (size_t i = 0; i < 12; i++) {
+    dynamixel_wrapper::WriteValue v;
+    v.id = (uint8_t) i;
+    v.value = (uint32_t) 10.0;
+    speeds.push_back(v);
+  }
+
+  iface.get()->set_velocity(speeds);
+}
+
+void restartServos(){
+  iface.get()->restartServos();
+  sleep(3);
+  iface.get()->setTorque(true);
+  usleep(1000);
+  setLowSpeed();
+  usleep(1000);
+}
+
 bool servoConfigCallback(dyret_common::Configure::Request  &req,
                          dyret_common::Configure::Response &res) {
 
@@ -98,9 +120,8 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
         speeds.push_back(v);
       }
 
-      iface->set_velocity(speeds);
+      iface.get()->set_velocity(speeds);
 
-      ROS_INFO("Servo speeds set");
       break;
     }
     case dyret_common::RevoluteConfig::TYPE_SET_PID:
@@ -110,6 +131,10 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
         ROS_INFO("Servo PIDs NOT set");
       }*/
       ROS_ERROR("Servo PIDs NOT set");
+      break;
+    case dyret_common::RevoluteConfig::TYPE_RESTART:
+      ROS_ERROR("Restarting servos");
+      restartServos();
       break;
     default:
       ROS_ERROR("Unknown servo configType detected!");

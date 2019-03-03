@@ -63,6 +63,9 @@ namespace dynamixel_wrapper {
     // Set velocity of selected servos
     ComError set_velocity(const std::vector<WriteValue> &);
 
+    // Restart all servos
+    void restartServos();
+
     // Read the state of all servos
     // Note: Input argument is the returned state
     ComError read_state(std::vector<ServoState> &);

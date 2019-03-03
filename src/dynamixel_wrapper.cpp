@@ -1,6 +1,7 @@
 #include "dyret_hardware/MX106.hpp"
 #include "dyret_hardware/dynamixel_wrapper.hpp"
 
+#include <unistd.h>
 #include <sstream>
 #include <stdexcept>
 
@@ -91,6 +92,14 @@ namespace dynamixel_wrapper {
       speed_writer->addParam(val.id, param);
     }
     return static_cast<ComError>(speed_writer->txPacket());
+  }
+
+  void Wrapper::restartServos() {
+    for (const auto &id : DYRET_SERVO_IDS) {
+      uint8_t hardwareError;
+      packet->reboot(port.get(), id);
+      usleep(100);
+    }
   }
 
   ComError Wrapper::read_state(std::vector<ServoState> &out) {
