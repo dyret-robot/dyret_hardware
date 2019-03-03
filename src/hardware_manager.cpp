@@ -85,9 +85,11 @@ void setLowSpeed(){
 }
 
 void restartServos(){
-  iface.get()->restartServos();
+  iface->restartServos();
   sleep(3);
-  iface.get()->setTorque(true);
+  iface->setTorque(true);
+  usleep(1000);
+  iface->disableReplies();
   usleep(1000);
   setLowSpeed();
   usleep(1000);
@@ -169,6 +171,9 @@ int main(int argc, char **argv) {
   int counter = 0;
 
   iface.get()->setTorque(true);
+  usleep(1000);
+  iface->disableReplies();
+  usleep(1000);
 
   while (ros::ok()) {
 

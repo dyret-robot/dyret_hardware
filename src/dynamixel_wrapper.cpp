@@ -169,4 +169,17 @@ namespace dynamixel_wrapper {
     return os;
   }
 
+  ComError Wrapper::disableReplies(){
+    uint8_t dxl_error = 0;
+    int dxl_comm_result = packet->write1ByteTxRx(port.get(), BROADCAST_ID, MX106_STATUS_RETURN_LEVEL_ADDR, 1, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS) {
+        printf("%d: %s\n", dxl_comm_result, packet->getTxRxResult(dxl_error));
+        return static_cast<ComError>(dxl_comm_result);
+    } else if (dxl_error != 0) {
+        printf("%d: %s\n", dxl_error, packet->getRxPacketError(dxl_error));
+        return static_cast<ComError>(dxl_comm_result);
+    }
+    return ComError::Success;
+}
+
 }

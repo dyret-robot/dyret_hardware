@@ -36,6 +36,9 @@
 #define MX106_PRESENT_TEMPERATURE_ADDR 146
 #define MX106_PRESENT_TEMPERATURE_SIZE 1
 
+
+#define MX106_STATUS_RETURN_LEVEL_ADDR 68
+
 namespace mx106 {
   float inline voltage_from_raw(const uint16_t volt) {
     return static_cast<float>(volt) / 10.0f;

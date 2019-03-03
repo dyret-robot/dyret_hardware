@@ -70,6 +70,9 @@ namespace dynamixel_wrapper {
     // Note: Input argument is the returned state
     ComError read_state(std::vector<ServoState> &);
 
+
+    ComError disableReplies();
+
   protected:
     // Handler for USB port
     std::unique_ptr<dynamixel::PortHandler> port;
