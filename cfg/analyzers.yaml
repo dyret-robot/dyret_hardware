@@ -4,9 +4,9 @@ analyzers:
                 type: GenericAnalyzer
                 path: Joints
                 contains: 'joint'
-                remove_prefix: 'dyret hardware_manager'
+                remove_prefix: 'hardware_manager'
         state:
                 type: GenericAnalyzer
                 path: State publishing
                 contains: 'state'
-                remove_prefix: 'dyret hardware_manager'
+                remove_prefix: 'hardware_manager'

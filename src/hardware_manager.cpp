@@ -212,8 +212,7 @@ void joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
     leg = "unknown";
     break;
   }
-  stat.add("joint", joint);
-  stat.add("leg", leg);
+  stat.addf("placement", "%s: %s", leg.c_str(), joint.c_str());
   // Add checks for warnings
   if (temp >= 50) {
     stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::WARN,
@@ -291,7 +290,7 @@ int main(int argc, char **argv) {
   diag.setHardwareID("dyret");
   for (const int id : servoIds) {
     const auto name = "joint " + std::to_string(id);
-    diag.add(name, [&id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
+    diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
       joint_diagnostic(stat, id);
     });
   }
