@@ -1,0 +1,12 @@
+base_path: 'dyret'
+analyzers:
+        joints:
+                type: GenericAnalyzer
+                path: Joints
+                contains: 'joint'
+                remove_prefix: 'dyret hardware_manager'
+        state:
+                type: GenericAnalyzer
+                path: State publishing
+                contains: 'state'
+                remove_prefix: 'dyret hardware_manager'

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <utility>
 #include <vector>
 #include "../dynamixel_sdk/dynamixel_sdk.h" // Uses Dynamixel SDK library
 
@@ -46,6 +47,19 @@ namespace dynamixel_wrapper {
     uint8_t temperature;
   };
 
+  typedef union {
+	  struct {
+		  uint8_t bit6_7: 2;
+		  uint8_t overload: 1;
+		  uint8_t electrical_shock: 1;
+		  uint8_t encoder_error: 1;
+		  uint8_t overheating: 1;
+		  uint8_t bit1: 1;
+		  uint8_t input_voltage: 1;
+	  } bits;
+	  uint8_t raw;
+  } HwError;
+
   class Wrapper {
   public:
     // Create a new Wrapper instance
@@ -68,7 +82,9 @@ namespace dynamixel_wrapper {
 
     // Read the state of all servos
     // Note: Input argument is the returned state
-    ComError read_state(std::vector<ServoState> &);
+    ComError read_state(std::vector<ServoState>&);
+    // Read the Hardware error status
+    ComError read_hw_error(std::vector<std::pair<int, HwError>>&);
 
     // Set servo PIDS
     ComError setServoPIDs(std::vector<int> servoIds, std::vector<float> servoPIDs);
@@ -85,6 +101,8 @@ namespace dynamixel_wrapper {
     std::unique_ptr<dynamixel::GroupSyncWrite> speed_writer;
     // Group reader objects to read from all servos at once
     std::unique_ptr<dynamixel::GroupSyncRead> state_reader;
+    // Group reader to read hardware errors
+    std::unique_ptr<dynamixel::GroupSyncRead> hw_err_reader;
   };
 
 }

@@ -3,6 +3,8 @@
 
 #include "ros/ros.h"
 #include "ros/console.h"
+#include "diagnostic_updater/diagnostic_updater.h"
+#include "diagnostic_updater/publisher.h"
 
 #include "dyret_common/Pose.h"
 #include "dyret_common/State.h"
@@ -22,6 +24,7 @@ bool receivedCommand = false;
 std::vector<dynamixel_wrapper::ServoState> states;
 std::vector<dynamixel_wrapper::WriteValue> goal_pos;
 std::unique_ptr<dynamixel_wrapper::Wrapper> iface;
+std::vector<std::pair<int, dynamixel_wrapper::HwError>> hw_status;
 
 // Received a pose message:
 void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
@@ -81,7 +84,7 @@ void setLowSpeed(){
     speeds.push_back(v);
   }
 
-  iface.get()->set_velocity(speeds);
+  iface->set_velocity(speeds);
 }
 
 void setServoPIDs(){
@@ -121,11 +124,11 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
 
   switch (req.configuration.revolute.type) {
     case dyret_common::RevoluteConfig::TYPE_DISABLE_TORQUE:
-      iface.get()->setTorque(false);
+      iface->setTorque(false);
 
       break;
     case dyret_common::RevoluteConfig::TYPE_ENABLE_TORQUE:
-      iface.get()->setTorque(true);
+      iface->setTorque(true);
       ROS_INFO("Enabled torque");
       break;
     case dyret_common::RevoluteConfig::TYPE_SET_SPEED: {
@@ -138,12 +141,12 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
         speeds.push_back(v);
       }
 
-      iface.get()->set_velocity(speeds);
+      iface->set_velocity(speeds);
 
       break;
     }
     case dyret_common::RevoluteConfig::TYPE_SET_PID:
-      if(iface.get()->setServoPIDs(servoIds, parameters) == dynamixel_wrapper::ComError::Success){
+      if(iface->setServoPIDs(servoIds, parameters) == dynamixel_wrapper::ComError::Success){
         ROS_INFO("Servo PIDs set");
       } else {
         ROS_INFO("Servo PIDs NOT set");
@@ -163,12 +166,86 @@ bool servoConfigCallback(dyret_common::Configure::Request  &req,
   return true;
 }
 
+void joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat, const int id) {
+  // Summaries can be overwritten by higher priority through `mergeSummary`
+  // this is just the initial status
+  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Joint is good");
+  const double temp = mx106::temp_from_raw(states[id].temperature);
+  const double voltage = mx106::voltage_from_raw(states[id].input_voltage);
+  stat.addf("current", "%.3f", mx106::current_from_raw(states[id].current));
+  stat.addf("voltage", "%.1f", voltage);
+  stat.addf("temperature", "%.1f", temp);
+  // Add placement in body
+  std::string joint, leg;
+  switch(id % 3) {
+	  case 0: joint = "joint 0 (coxa)"; break;
+	  case 1: joint = "joint 1 (femur)"; break;
+	  case 2: joint = "joint 2 (tibia)"; break;
+	  defualt: joint = "unknown"; break;
+  }
+  switch(id / 3) {
+	  case 0: leg = "front left"; break;
+	  case 1: leg = "front right"; break;
+	  case 2: leg = "back right"; break;
+	  case 3: leg = "back left"; break;
+	  default: leg = "unknown"; break;
+  }
+  stat.add("joint", joint);
+  stat.add("leg", leg);
+  // Add checks for warnings
+  if(temp >= 50) {
+    stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::WARN,
+		    "Temperature is large: %.1f", temp);
+  }
+  if (temp >= 65) {
+    stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::ERROR,
+		    "Temperature is very large: %.1f", temp);
+  }
+  if(11.1 > voltage || voltage > 14.8) {
+    stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::WARN,
+		    "Voltage is outside allowable range [11.1, 14.8]: %.1f",
+		    voltage);
+  }
+  // Because there is a really limited number of entries in the
+  // hardware error vector this is as fast as searching
+  bool hw_status_found = false;
+  for(const auto& pair : hw_status) {
+    if(pair.first == id) {
+      if(pair.second.bits.overload) {
+	stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::ERROR,
+			"Overload detected");
+      }
+      if(pair.second.bits.electrical_shock) {
+	stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::ERROR,
+			"Electrical shock detected");
+      }
+      if(pair.second.bits.encoder_error) {
+	stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::ERROR,
+			"Encoder error detected");
+      }
+      if(pair.second.bits.overheating) {
+	stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::ERROR,
+			"Temperature overheating detected");
+      }
+      if(pair.second.bits.input_voltage) {
+	stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::ERROR,
+			"Input voltage error detected");
+      }
+      hw_status_found = true;
+      break;
+    }
+  }
+  if(!hw_status_found) {
+    stat.mergeSummary(diagnostic_msgs::DiagnosticStatus::WARN,
+		    "No hardware status read");
+  }
+}
+
 int main(int argc, char **argv) {
   ros::init(argc, argv, "hardware_manager");
   ros::NodeHandle n;
 
   dynamixel_wrapper::Wrapper wrapper;
-
   iface = std::unique_ptr<dynamixel_wrapper::Wrapper>(new dynamixel_wrapper::Wrapper());
 
   ros::Publisher servoStates_pub = n.advertise<dyret_common::State>("/dyret/state", 5);
@@ -180,30 +257,55 @@ int main(int argc, char **argv) {
 
   std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 
+  // Create diagnostic updater instance which we will utilize to build error monitoring
+  diagnostic_updater::Updater diag;
+  diag.setHardwareID("dyret");
+  for(const int id : servoIds) {
+    const auto name = "joint " + std::to_string(id);
+    diag.add(name, [&id](diagnostic_updater::DiagnosticStatusWrapper& stat){
+      joint_diagnostic(stat, id);
+    });
+  }
+  double min_freq = 100.;
+  double max_freq = 150.;
+  diagnostic_updater::TopicDiagnostic state_pub_freq(
+    "state", diag,
+    diagnostic_updater::FrequencyStatusParam(&min_freq, &max_freq, 0.0),
+    diagnostic_updater::TimeStampStatusParam(-1., 1. / 100.));
+
   prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   revoluteCommands  = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   int counter = 0;
 
-  iface.get()->setTorque(true);
+  iface->setTorque(true);
   usleep(1000);
   iface->disableReplies();
   usleep(1000);
   setServoPIDs();
   usleep(1000);
 
+  // Last time we read status such as hardware error
+  ros::Time last_status_read = ros::Time::now() - ros::Duration(1.0);
+
   while (ros::ok()) {
 
-    auto res = iface.get()->read_state(states);
+    const auto res = iface->read_state(states);
+    if(res != dynamixel_wrapper::ComError::Success) {
+      ROS_WARN_STREAM("Error reading state from servos: " << res);
+    }
 
     // Send angles to servos:
     if (receivedCommand) {
-      iface.get()->set_goal_position(goal_pos);
+      const auto res = iface->set_goal_position(goal_pos);
+      if(res != dynamixel_wrapper::ComError::Success) {
+        ROS_WARN_STREAM("Error writing goal position: " << res);
+      }
     }
 
     // Prepare and send message
     dyret_common::State servoStates;
-    servoStates.header.stamp = ros::Time().now();
+    servoStates.header.stamp = ros::Time::now();
 
     // Copy data
     for(size_t i = 0; i < states.size(); i++) {
@@ -227,6 +329,20 @@ int main(int argc, char **argv) {
     }
 
     servoStates_pub.publish(servoStates);
+    state_pub_freq.tick(servoStates.header.stamp);
+
+    // Read additional status from servos
+    if(servoStates.header.stamp - last_status_read > ros::Duration(0.1)) {
+      const auto res = iface->read_hw_error(hw_status);
+      if(res != dynamixel_wrapper::ComError::Success) {
+        ROS_WARN_STREAM("Error reading hardware status: " << res);
+      }
+      last_status_read = servoStates.header.stamp;
+    }
+
+    // Potentially output diagnostic data, note that the updater
+    // is internally rate limited and will not spew data
+    diag.update();
 
     // SpinOnce to receive new messages from ROS
     ros::spinOnce();

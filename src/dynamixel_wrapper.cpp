@@ -35,9 +35,13 @@ namespace dynamixel_wrapper {
                                                               MX106_POSITION_TRAJECTORY_SIZE +
                                                               MX106_PRESENT_INPUT_VOLTAGE_SIZE +
                                                               MX106_PRESENT_TEMPERATURE_SIZE);
+    hw_err_reader = std::make_unique<dynamixel::GroupSyncRead>(port.get(), packet.get(),
+		    MX106_HARDWARE_ERROR_STATUS_ADDR,
+		    MX106_HARDWARE_ERROR_STATUS_SIZE);
     // Initialize reader with IDs to read from
     for (const auto &id : DYRET_SERVO_IDS) {
       state_reader->addParam(id);
+      hw_err_reader->addParam(id);
     }
     // Try to read once from all servos to check that everything is fine
     std::vector<ServoState> state;
@@ -133,6 +137,25 @@ namespace dynamixel_wrapper {
       out.push_back(st);
     }
     return err;
+  }
+
+  ComError Wrapper::read_hw_error(std::vector<std::pair<int, HwError>>& out) {
+    out.clear();
+    auto res = static_cast<ComError>(hw_err_reader->txRxPacket());
+    // Error out early
+    if(res != ComError::Success) {
+      return res;
+    }
+    for(const auto& id : DYRET_SERVO_IDS) {
+      if(!hw_err_reader->isAvailable(id, MX106_HARDWARE_ERROR_STATUS_ADDR, MX106_HARDWARE_ERROR_STATUS_SIZE)) {
+        res = ComError::NotAvailable;
+	continue;
+      }
+      HwError err;
+      err.raw = hw_err_reader->getData(id, MX106_HARDWARE_ERROR_STATUS_ADDR, MX106_HARDWARE_ERROR_STATUS_SIZE);
+      out.push_back(std::make_pair(id, err));
+    }
+    return res;
   }
 
   std::ostream &operator<<(std::ostream &os, const ComError &e) {

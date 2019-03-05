@@ -8,10 +8,11 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror -Wno-unused")
 
 find_package(catkin REQUIRED COMPONENTS 
+  diagnostic_updater
+  dyret_common
   message_generation
   roscpp 
   std_msgs 
-  dyret_common
 )
 
 add_message_files(

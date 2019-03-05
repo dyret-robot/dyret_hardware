@@ -8,14 +8,21 @@
   <license>GPL-3.0-or-later</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>diagnostic_updater</build_depend>
   <build_depend>dyret_common</build_depend> 
   <build_depend>message_generation</build_depend> 
   <build_depend>std_msgs</build_depend>
   <exec_depend>message_runtime</exec_depend>
-  <exec_depend>mocap_optitrack</exec_depend>
-  <exec_depend>optoforce</exec_depend>
   <exec_depend>rosserial_python</exec_depend>
+  <!-- Needed for Motion capture (Optional) -->
+  <exec_depend>mocap_optitrack</exec_depend>
+  <!-- Needed for foot touch sensors (Optional) -->
+  <exec_depend>optoforce</exec_depend>
+  <!-- Needed for IMU (Optional) -->
   <exec_depend>xsens_driver</exec_depend>
+  <!-- Needed for diagnostic output (Optional) -->
+  <exec_depend>diagnostic_aggregator</exec_depend>
+  <exec_depend>rqt_robot_monitor</exec_depend>
 
   <export>
   </export>
