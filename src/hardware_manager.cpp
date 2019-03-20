@@ -16,8 +16,9 @@
 
 ros::Publisher actuatorCommandPub;
 boost::array<float, 8> prismaticPositions;
+boost::array<uint8_t, 8> prismaticPwms;
+boost::array<uint8_t, 8> prismaticStatuses;
 std::vector<float> prismaticCommands;
-std::vector<float> revoluteCommands;
 bool receivedCommand = false;
 
 std::vector<dynamixel_wrapper::ServoState> states;
@@ -70,6 +71,8 @@ void actuatorBoardStatesCallback(
 
   for (size_t i = 0; i < msg->position.size(); i++) {
     prismaticPositions[i] = static_cast<float>(msg->position[i]);
+    prismaticStatuses[i] = msg->status[i];
+    prismaticPwms[i] = msg->pwm[i];
   }
 }
 
@@ -302,8 +305,6 @@ int main(int argc, char **argv) {
       diagnostic_updater::TimeStampStatusParam(-1., 1. / 100.));
 
   prismaticCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  revoluteCommands = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
   int counter = 0;
 
@@ -361,6 +362,8 @@ int main(int argc, char **argv) {
       servoStates.prismatic[i].set_point = prismaticCommands[i];
       servoStates.prismatic[i].error =
           prismaticPositions[i] - prismaticCommands[i];
+      servoStates.prismatic[i].pwm = prismaticPwms[i];
+      servoStates.prismatic[i].status = prismaticStatuses[i];
     }
 
     servoStates_pub.publish(servoStates);
