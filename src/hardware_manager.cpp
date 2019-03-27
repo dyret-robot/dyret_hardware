@@ -181,7 +181,7 @@ bool servoConfigCallback(dyret_common::Configure::Request &req,
   return true;
 }
 
-void joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
+void revolute_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
                       const int id) {
   // Summaries can be overwritten by higher priority through `mergeSummary`
   // this is just the initial status
@@ -202,9 +202,6 @@ void joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
     break;
   case 2:
     joint = "joint 2 (tibia)";
-    break;
-  defualt:
-    joint = "unknown";
     break;
   }
   switch (id / 3) {
@@ -274,6 +271,55 @@ void joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
   }
 }
 
+void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat,
+                               const int id) {
+  // Summaries can be overwritten by higher priority through `mergeSummary`
+  // this is just the initial status
+  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Joint is good");
+
+  const double pwm = prismaticPwms[id];
+  const double position = prismaticPositions[id];
+  const int status = prismaticStatuses[id];
+
+  stat.addf("position", "%.3f", position);
+  stat.addf("pwm", "%.1f", pwm);
+  stat.addf("status", "%.1f", status);
+  // Add placement in body
+  std::string joint, leg;
+  switch (id % 3) {
+    case 0:
+      joint = "joint 0 (femur)";
+      break;
+    case 1:
+      joint = "joint 1 (tibia)";
+      break;
+  }
+  switch (id / 3) {
+    case 0:
+      leg = "front left";
+      break;
+    case 1:
+      leg = "front right";
+      break;
+    case 2:
+      leg = "back right";
+      break;
+    case 3:
+      leg = "back left";
+      break;
+    default:
+      leg = "unknown";
+      break;
+  }
+  stat.addf("placement", "%s: %s", leg.c_str(), joint.c_str());
+  // Add checks for warnings
+  if (status == 2) {
+    stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::ERROR,
+                       "Joint is stuck with status: %d", status);
+  }
+  
+}
+
 int main(int argc, char **argv) {
   ros::init(argc, argv, "hardware_manager");
   ros::NodeHandle n;
@@ -294,16 +340,23 @@ int main(int argc, char **argv) {
   ros::Subscriber actuatorBoardStates_sub = n.subscribe(
       "/dyret/actuator_board/state", 1, actuatorBoardStatesCallback);
 
-  std::vector<int> servoIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  std::vector<int> revoluteIds = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  std::vector<int> prismaticIds = {0, 1, 2, 3, 4, 5, 6, 7};
 
   // Create diagnostic updater instance which we will utilize to build error
   // monitoring
   diagnostic_updater::Updater diag;
   diag.setHardwareID("dyret");
-  for (const int id : servoIds) {
-    const auto name = "joint " + std::to_string(id);
+  for (const int id : revoluteIds) {
+    const auto name = "revolute_joint " + std::to_string(id);
     diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
-      joint_diagnostic(stat, id);
+      revolute_joint_diagnostic(stat, id);
+    });
+  }
+  for (const int id : prismaticIds) {
+    const auto name = "prismatic_joint " + std::to_string(id);
+    diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
+      prismatic_joint_diagnostic(stat, id);
     });
   }
   double min_freq = 100.;

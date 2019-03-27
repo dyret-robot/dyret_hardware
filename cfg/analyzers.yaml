@@ -1,9 +1,14 @@
 base_path: 'dyret'
 analyzers:
-        joints:
+        revolute_joints:
                 type: GenericAnalyzer
-                path: Joints
-                contains: 'joint'
+                path: revolute_joints
+                contains: 'revolute_joint'
+                remove_prefix: 'hardware_manager'
+        prismatic_joints:
+                type: GenericAnalyzer
+                path: prismatic_joints
+                contains: 'prismatic_joint'
                 remove_prefix: 'hardware_manager'
         state:
                 type: GenericAnalyzer
