@@ -185,43 +185,16 @@ void revolute_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &stat
                       const int id) {
   // Summaries can be overwritten by higher priority through `mergeSummary`
   // this is just the initial status
-  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Joint is good");
   const double temp = mx106::temp_from_raw(states[id].temperature);
   const double voltage = mx106::voltage_from_raw(states[id].input_voltage);
+
+  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "OK (" + std::to_string((int) temp) + ")");
+
   stat.addf("current", "%.3f", mx106::current_from_raw(states[id].current));
   stat.addf("voltage", "%.1f", voltage);
-  stat.addf("temperature", "%.1f", temp);
-  // Add placement in body
-  std::string joint, leg;
-  switch (id % 3) {
-  case 0:
-    joint = "joint 0 (coxa)";
-    break;
-  case 1:
-    joint = "joint 1 (femur)";
-    break;
-  case 2:
-    joint = "joint 2 (tibia)";
-    break;
-  }
-  switch (id / 3) {
-  case 0:
-    leg = "front left";
-    break;
-  case 1:
-    leg = "front right";
-    break;
-  case 2:
-    leg = "back right";
-    break;
-  case 3:
-    leg = "back left";
-    break;
-  default:
-    leg = "unknown";
-    break;
-  }
-  stat.addf("placement", "%s: %s", leg.c_str(), joint.c_str());
+  stat.addf("temperature", "%.1fC", temp);
+  stat.addf("global id", "%d", id);
+
   // Add checks for warnings
   if (temp >= 50) {
     stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::WARN,
@@ -275,50 +248,63 @@ void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &sta
                                const int id) {
   // Summaries can be overwritten by higher priority through `mergeSummary`
   // this is just the initial status
-  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Joint is good");
-
   const double pwm = prismaticPwms[id];
   const double position = prismaticPositions[id];
   const int status = prismaticStatuses[id];
 
+  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "OK (" + std::to_string(status) + ")");
+
   stat.addf("position", "%.3f", position);
   stat.addf("pwm", "%.1f", pwm);
   stat.addf("status", "%.1f", status);
-  // Add placement in body
-  std::string joint, leg;
-  switch (id % 3) {
-    case 0:
-      joint = "joint 0 (femur)";
-      break;
-    case 1:
-      joint = "joint 1 (tibia)";
-      break;
-  }
-  switch (id / 3) {
-    case 0:
-      leg = "front left";
-      break;
-    case 1:
-      leg = "front right";
-      break;
-    case 2:
-      leg = "back right";
-      break;
-    case 3:
-      leg = "back left";
-      break;
-    default:
-      leg = "unknown";
-      break;
-  }
-  stat.addf("placement", "%s: %s", leg.c_str(), joint.c_str());
+
+  stat.addf("global id", "%d", id);
+
   // Add checks for warnings
   if (status == 2) {
     stat.mergeSummaryf(diagnostic_msgs::DiagnosticStatus::ERROR,
                        "Joint is stuck with status: %d", status);
   }
-  
+
 }
+
+std::string getLegName(int legId){
+  switch (legId / 3) {
+    case 0:
+      return "front left";
+    case 1:
+      return "front right";
+    case 2:
+      return "back right";
+    case 3:
+      return "back left";
+  }
+  return "unknown";
+}
+
+std::string getRevoluteJointName(int jointId){
+  switch (jointId % 3) {
+    case 0:
+      return "coxa (0)";
+    case 1:
+      return "femur (1)";
+    case 2:
+      return "tibia (2)";
+  }
+  return "unknown";
+}
+
+std::string getPrismaticJointName(int jointId){
+  switch (jointId % 2) {
+    case 0:
+      return "femur (0)";
+    case 1:
+      return "tibia (1)";
+  }
+  return "unknown";
+}
+
+
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "hardware_manager");
@@ -348,13 +334,14 @@ int main(int argc, char **argv) {
   diagnostic_updater::Updater diag;
   diag.setHardwareID("dyret");
   for (const int id : revoluteIds) {
-    const auto name = "revolute_joint " + std::to_string(id);
+
+    const auto name = "revolute_joint " + getLegName(id) + ", " + getRevoluteJointName(id);
     diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
       revolute_joint_diagnostic(stat, id);
     });
   }
   for (const int id : prismaticIds) {
-    const auto name = "prismatic_joint " + std::to_string(id);
+    const auto name = "prismatic_joint " + getLegName(id) + ", " + getPrismaticJointName(id);
     diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
       prismatic_joint_diagnostic(stat, id);
     });

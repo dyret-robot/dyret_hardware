@@ -4,12 +4,12 @@ analyzers:
                 type: GenericAnalyzer
                 path: revolute_joints
                 contains: 'revolute_joint'
-                remove_prefix: 'hardware_manager'
+                remove_prefix: 'hardware_manager: revolute_joint '
         prismatic_joints:
                 type: GenericAnalyzer
                 path: prismatic_joints
                 contains: 'prismatic_joint'
-                remove_prefix: 'hardware_manager'
+                remove_prefix: 'hardware_manager: prismatic_joint '
         state:
                 type: GenericAnalyzer
                 path: State publishing
