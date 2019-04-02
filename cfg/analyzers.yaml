@@ -12,6 +12,11 @@ analyzers:
                 remove_prefix: 'hardware_manager: prismatic_joint '
         state:
                 type: GenericAnalyzer
-                path: State publishing
-                contains: 'state'
+                path: topics
+                contains: 'state topic'
                 remove_prefix: 'hardware_manager'
+        mocap:
+                type: GenericAnalyzer
+                path: topics
+                contains: 'mocapMonitor'
+                remove_prefix: 'mocapMonitor'
