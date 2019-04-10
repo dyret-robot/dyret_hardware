@@ -14,8 +14,11 @@ def checkMocap(stat):
     global lastTime
 
     n = len(r.times)
-    mean = sum(r.times) / n
-    rate = 1./mean if mean > 0. else 0
+
+    rate = 0
+    if n > 0:
+        mean = sum(r.times) / n
+        rate = 1./mean if mean > 0. else 0
 
     if lastTime == r.msg_tn:
         stat.summary(diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Not receiving mocap data")
