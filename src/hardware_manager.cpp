@@ -268,8 +268,22 @@ void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &sta
 
 }
 
-std::string getLegName(int legId){
-  switch (legId / 3) {
+std::string getLegNamePrismatic(int prismaticId){
+  switch (prismaticId / 2) {
+    case 0:
+      return "front left";
+    case 1:
+      return "front right";
+    case 2:
+      return "back right";
+    case 3:
+      return "back left";
+  }
+  return "unknown";
+}
+
+std::string getLegNameRevolute(int prismaticId){
+  switch (prismaticId / 3) {
     case 0:
       return "front left";
     case 1:
@@ -335,13 +349,13 @@ int main(int argc, char **argv) {
   diag.setHardwareID("dyret");
   for (const int id : revoluteIds) {
 
-    const auto name = "revolute_joint " + getLegName(id) + ", " + getRevoluteJointName(id);
+    const auto name = "revolute_joint " + getLegNameRevolute(id) + ", " + getRevoluteJointName(id);
     diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
       revolute_joint_diagnostic(stat, id);
     });
   }
   for (const int id : prismaticIds) {
-    const auto name = "prismatic_joint " + getLegName(id) + ", " + getPrismaticJointName(id);
+    const auto name = "prismatic_joint " + getLegNamePrismatic(id) + ", " + getPrismaticJointName(id) + "(" + std::to_string(id) + ")";
     diag.add(name, [id](diagnostic_updater::DiagnosticStatusWrapper &stat) {
       prismatic_joint_diagnostic(stat, id);
     });
