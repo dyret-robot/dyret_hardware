@@ -17,6 +17,7 @@
 ros::Publisher actuatorCommandPub;
 boost::array<float, 8> prismaticPositions;
 boost::array<uint8_t, 8> prismaticPwms;
+boost::array<uint16_t, 8> prismaticRaws;
 boost::array<uint8_t, 8> prismaticStatuses;
 std::vector<float> prismaticCommands;
 bool receivedCommand = false;
@@ -82,6 +83,7 @@ void actuatorBoardStatesCallback(
     prismaticPositions[i] = static_cast<float>(msg->position[i]);
     prismaticStatuses[i] = msg->status[i];
     prismaticPwms[i] = msg->pwm[i];
+    prismaticRaws[i] = msg->raw[i];
   }
 }
 
@@ -249,6 +251,7 @@ void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &sta
   // Summaries can be overwritten by higher priority through `mergeSummary`
   // this is just the initial status
   const double pwm = prismaticPwms[id];
+  const double raw = prismaticRaws[id];
   const double position = prismaticPositions[id];
   const int status = prismaticStatuses[id];
 
@@ -256,6 +259,7 @@ void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &sta
 
   stat.addf("position", "%.3f", position);
   stat.addf("pwm", "%.1f", pwm);
+  stat.addf("raw", "%.1f", raw);
   stat.addf("status", "%.1f", status);
 
   stat.addf("global id", "%d", id);
@@ -426,6 +430,7 @@ int main(int argc, char **argv) {
       servoStates.prismatic[i].error =
           prismaticPositions[i] - prismaticCommands[i];
       servoStates.prismatic[i].pwm = prismaticPwms[i];
+      servoStates.prismatic[i].raw = prismaticRaws[i];
       servoStates.prismatic[i].status = prismaticStatuses[i];
     }
 

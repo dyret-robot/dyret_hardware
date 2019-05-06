@@ -1,6 +1,7 @@
 # Joint state
 float32[8] position
 uint8[8] pwm
+uint16[8] raw
 
 # Joint status:
 uint8[8] status
