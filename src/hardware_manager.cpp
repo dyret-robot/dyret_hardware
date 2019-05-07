@@ -260,7 +260,7 @@ void prismatic_joint_diagnostic(diagnostic_updater::DiagnosticStatusWrapper &sta
   stat.addf("position", "%.3f", position);
   stat.addf("pwm", "%.1f", pwm);
   stat.addf("raw", "%.1f", raw);
-  stat.addf("status", "%.1f", status);
+  stat.addf("status", "%d", status);
 
   stat.addf("global id", "%d", id);
 
