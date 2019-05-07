@@ -1,5 +1,6 @@
 ACTION=="add", SUBSYSTEM=="usb-serial", DRIVER=="ftdi_sio", ATTR{latency_timer}="1"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="dyretActuatorBoard"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2341", ATTRS{idProduct}=="0010", SYMLINK+="dyretActuatorBoard"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="2639", ATTRS{idProduct}=="0003", SYMLINK+="dyretImu"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="dyretDynamixel"
 SUBSYSTEM=="tty", ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="06a7", SYMLINK+="dyretDynamixel"
