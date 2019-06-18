@@ -1,0 +1,10 @@
+<launch>
+  <arg name="contact_enabled" default="false" doc="Enable contact sensors" /> 
+  <include file="$(find dyret_hardware)/launch/standalone.launch"> 
+    <arg name="contact_enabled" value="$(arg contact_enabled)" /> 
+  </include> 
+
+  <remap from="/qualisys/Dyret_pose" to="/dyret/sensor/pose" />
+  <include file="$(find qualisys)/launch/qualisys.launch" />
+
+</launch>
