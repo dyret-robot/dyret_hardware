@@ -1,8 +1,4 @@
 <launch>
-  <arg name="contact_enabled" default="false" doc="Enable contact sensors" /> 
-  <include file="$(find dyret_hardware)/launch/standalone.launch"> 
-    <arg name="contact_enabled" value="$(arg contact_enabled)" /> 
-  </include> 
 
   <remap from="/mocap_node/Robot_1/pose" to="/dyret/sensor/pose" />
   <include file="$(find mocap_optitrack)/launch/mocap.launch"> 
@@ -10,3 +6,4 @@
   </include> 
 
 </launch>
+

@@ -1,7 +1,7 @@
 <launch>
-  <!-- Should contact sensors be enabled? -->
-  <arg name="contact_enabled" default="false"
-	  doc="Enable OptoForce contact sensors" />
+  <arg name="contact_enabled" default="false" doc="Enable OptoForce contact sensors" />
+  <arg name="imu_enabled" default="true" doc="Enable IMU sensor" />
+  <arg name="mocap_type" default="" doc="Type of mocap system (blank to not start mocap)" />
 
   <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" output="screen" />
 
@@ -14,7 +14,7 @@
   <remap from="/time_reference" to="/dyret/sensor/raw/imu_time_reference" />
   <remap from="/velocity" to="/dyret/sensor/raw/imu_velocity" />
 
-  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver">
+  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" if="$(arg imu_enabled)">
     <param name="frame_id" value="/imu" />
     <param name="initial_wait" value="0.1" />
     <param name="frame_local" value="ENU" />
@@ -27,7 +27,8 @@
     <rosparam param="angular_velocity_covariance_diagonal" subst_value="True">[0.0004, 0.0004, 0.0004]</rosparam>
   </node>
 
-  <!-- If `contact_enabled` we launch optoforce driver -->
-  <include if="$(arg contact_enabled)"
-	  file="$(find dyret_hardware)/launch/optoforce.launch" />
+  <include if="$(arg contact_enabled)" file="$(find dyret_hardware)/launch/optoforce.launch" />
+
+  <include file="$(find dyret_hardware)/launch/mocap_$(arg mocap_type).launch" if="$(eval arg('mocap_type') != '')" />
+
 </launch>

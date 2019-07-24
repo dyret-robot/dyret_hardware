@@ -1,0 +1,6 @@
+<launch>
+
+  <remap from="/qualisys/Dyret_pose" to="/dyret/sensor/pose" />
+  <include file="$(find qualisys)/launch/qualisys.launch" />
+
+</launch>
