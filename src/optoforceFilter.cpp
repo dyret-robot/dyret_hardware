@@ -40,22 +40,38 @@ public:
         ROS_INFO("%s: node initialized.",_name.c_str());
     }
 
+    float median(std::vector<float> v){
+        size_t n = v.size() / 2;
+        nth_element(v.begin(), v.begin()+n, v.end());
+        return v[n];
+    }
+
     void optoforceCallback(const geometry_msgs::WrenchStamped::ConstPtr &msg, const std::string &topic, int legIndex) {
+        std::array<double, 3> measurements = {msg->wrench.force.x, msg->wrench.force.y, msg->wrench.force.z};
+
         if (_measurementCounter[legIndex] != -1 && _measurementCounter[legIndex] < calibrationMeasurements){
-            _means[legIndex*3]   += msg->wrench.force.x;
-            _means[legIndex*3+1] += msg->wrench.force.y;
-            _means[legIndex*3+2] += msg->wrench.force.z;
+            _means[legIndex*3]   += measurements[0];
+            _means[legIndex*3+1] += measurements[1];
+            _means[legIndex*3+2] += measurements[2];
             _measurementCounter[legIndex] += 1;
         }
 
         if (!calibrating){
+            _measurements[legIndex*3].push_back(measurements[0] - _means[legIndex*3]);
+            _measurements[legIndex*3+1].push_back(measurements[1] - _means[legIndex*3+1]);
+            _measurements[legIndex*3+2].push_back(measurements[2] - _means[legIndex*3+2]);
+
+            if (_measurements[legIndex*3].size() > medianFilterSize) _measurements[legIndex*3].erase(_measurements[legIndex*3].begin());
+            if (_measurements[legIndex*3+1].size() > medianFilterSize) _measurements[legIndex*3+1].erase(_measurements[legIndex*3+1].begin());
+            if (_measurements[legIndex*3+2].size() > medianFilterSize) _measurements[legIndex*3+2].erase(_measurements[legIndex*3+2].begin());
+
             geometry_msgs::WrenchStamped newMsg;
             newMsg.header = msg->header;
             newMsg.wrench = msg->wrench;
 
-            newMsg.wrench.force.x = msg->wrench.force.x - _means[legIndex*3];
-            newMsg.wrench.force.y = msg->wrench.force.y - _means[legIndex*3+1];
-            newMsg.wrench.force.z = msg->wrench.force.z - _means[legIndex*3+2];
+            newMsg.wrench.force.x = median(_measurements[legIndex*3]);
+            newMsg.wrench.force.y = median(_measurements[legIndex*3+1]);
+            newMsg.wrench.force.z = median(_measurements[legIndex*3+2]);
 
             _pub_optoforce[legIndex].publish(newMsg);
 
@@ -117,14 +133,14 @@ private:
     ros::ServiceServer _ser_calibration;
 
     // Other
+    std::array<std::vector<float>, 12> _measurements;
     std::array<float, 12> _means;
     std::array<int, 4> _measurementCounter;
     bool calibrating;
 
-
     // Config
     const int calibrationMeasurements = 1000;
-
+    const unsigned int medianFilterSize = 5;
 };
 
 int main(int argc,char** argv){
