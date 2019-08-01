@@ -22,6 +22,12 @@ add_message_files(
   ActuatorBoardState.msg
 )
 
+
+add_service_files(
+  FILES
+  CalibrateOptoforceSensors.srv
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -65,3 +71,6 @@ add_executable(tmpMon src/tmpMon.cpp)
 add_dependencies(tmpMon ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(tmpMon ${catkin_LIBRARIES})
 
+add_executable(optoforceFilter src/optoforceFilter.cpp)
+add_dependencies(optoforceFilter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(optoforceFilter ${catkin_LIBRARIES})
