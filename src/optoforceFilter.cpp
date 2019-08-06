@@ -1,5 +1,6 @@
-// ROS
+#include <fstream>
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <ros/publisher.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <std_msgs/Float32.h>
@@ -10,6 +11,26 @@ class optoforceFilter{
 public:
     optoforceFilter(ros::NodeHandle nh): _nh(nh){
         initialize();
+    }
+
+    bool fileExists (const std::string& name) {
+        return (access(name.c_str(), F_OK) != -1);
+    }
+
+    std::vector<float> readCsv(std::string givenString) {
+        std::vector<float> vect;
+
+        std::stringstream ss(givenString);
+
+        float i;
+        while (ss >> i) {
+            vect.push_back(i);
+
+            if (ss.peek() == ',')
+                ss.ignore();
+        }
+
+        return vect;
     }
 
     void initialize(){
@@ -35,6 +56,26 @@ public:
 
         // Services
         _ser_calibration = _nh.advertiseService("/dyret/dyret_hardware/CalibrateOptoforceSensors", &optoforceFilter::calibrateCallback, this);
+
+        // Read in previous calibration if existing
+        std::string packagePath = ros::package::getPath("dyret_hardware");
+
+        if (fileExists(packagePath + "/config/calibration_optoforce.csv")){
+            ROS_INFO("Reading calibration data");
+
+            std::ifstream t(packagePath + "/config/calibration_optoforce.csv");
+            std::stringstream buffer;
+            buffer << t.rdbuf();
+
+            std::string token;
+            int counter = 0;
+            while(std::getline(buffer, token, ',')) {
+                _means[counter++] = std::stod(token);
+            }
+
+        } else {
+            ROS_WARN("No calibration data found");
+        }
 
         // Inform initialized
         ROS_INFO("%s: node initialized.",_name.c_str());
@@ -109,6 +150,18 @@ public:
 
         for (int i = 0; i < 4; i++) _measurementCounter[i] = -1;
 
+        // Write calibration file
+        std::string packagePath = ros::package::getPath("dyret_hardware");
+
+        FILE *calFile = fopen((packagePath + "/config/calibration_optoforce.csv").c_str(), "w");
+
+        for (unsigned int i = 0; i < _means.size(); i++){
+            fprintf(calFile, "%f", _means[i]);
+            if (i != _means.size()-1) fprintf(calFile, ", ");
+        }
+
+
+        fclose(calFile);
 
         return true;
     }

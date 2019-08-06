@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   dyret_common
   message_generation
   roscpp 
+  roslib
   std_msgs 
 )
 
@@ -74,3 +75,4 @@ target_link_libraries(tmpMon ${catkin_LIBRARIES})
 add_executable(optoforceFilter src/optoforceFilter.cpp)
 add_dependencies(optoforceFilter ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(optoforceFilter ${catkin_LIBRARIES})
+
