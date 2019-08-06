@@ -5,6 +5,8 @@
 	<remap from="/optoforce_0" to="/dyret/sensor/raw/contact/br" />
 	<remap from="/optoforce_3" to="/dyret/sensor/raw/contact/bl" />
 
+	<node pkg="dyret_hardware" name="optoforceFilter" type="optoforceFilter" required="true" />
+
 	<!-- Launch optoforce USB driver: -->
 	<node name="optoforce_driver" pkg="optoforce" type="optoforce_node.py"
 		output="screen">
