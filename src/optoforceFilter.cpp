@@ -112,7 +112,7 @@ public:
 
             newMsg.wrench.force.x = median(_measurements[legIndex*3]);
             newMsg.wrench.force.y = median(_measurements[legIndex*3+1]);
-            newMsg.wrench.force.z = median(_measurements[legIndex*3+2]);
+            newMsg.wrench.force.z = fmax(median(_measurements[legIndex*3+2]), 0.0);
 
             _pub_optoforce[legIndex].publish(newMsg);
 
