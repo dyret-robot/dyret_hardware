@@ -98,13 +98,16 @@ public:
         }
 
         if (!calibrating){
-            _measurements[legIndex*3].push_back(measurements[0] - _means[legIndex*3]);
-            _measurements[legIndex*3+1].push_back(measurements[1] - _means[legIndex*3+1]);
-            _measurements[legIndex*3+2].push_back(measurements[2] - _means[legIndex*3+2]);
 
-            if (_measurements[legIndex*3].size() > medianFilterSize) _measurements[legIndex*3].erase(_measurements[legIndex*3].begin());
-            if (_measurements[legIndex*3+1].size() > medianFilterSize) _measurements[legIndex*3+1].erase(_measurements[legIndex*3+1].begin());
-            if (_measurements[legIndex*3+2].size() > medianFilterSize) _measurements[legIndex*3+2].erase(_measurements[legIndex*3+2].begin());
+            for (int i  = 0; i < 3; i++){
+                double value = measurements[i] - _means[legIndex*3+i];
+
+                if (fabs(value) < 100.0) {
+                    _measurements[legIndex * 3 + i].push_back(value);
+                }
+            }
+
+            for (int i  = 0; i < 3; i++) if (_measurements[legIndex*3+i].size() > medianFilterSize) _measurements[legIndex*3+i].erase(_measurements[legIndex*3+i].begin());
 
             geometry_msgs::WrenchStamped newMsg;
             newMsg.header = msg->header;
