@@ -84,10 +84,12 @@ public:
     float median(std::vector<float> v){
         size_t n = v.size() / 2;
         nth_element(v.begin(), v.begin()+n, v.end());
+
         return v[n];
     }
 
     void optoforceCallback(const geometry_msgs::WrenchStamped::ConstPtr &msg, const std::string &topic, int legIndex) {
+
         std::array<double, 3> measurements = {msg->wrench.force.x, msg->wrench.force.y, msg->wrench.force.z};
 
         if (_measurementCounter[legIndex] != -1 && _measurementCounter[legIndex] < calibrationMeasurements){
@@ -97,28 +99,34 @@ public:
             _measurementCounter[legIndex] += 1;
         }
 
-        if (!calibrating){
+        if (!calibrating) {
 
-            for (int i  = 0; i < 3; i++){
-                double value = measurements[i] - _means[legIndex*3+i];
+            for (int i = 0; i < 3; i++) {
+                double value = measurements[i] - _means[legIndex * 3 + i];
 
                 if (fabs(value) < 100.0) {
                     _measurements[legIndex * 3 + i].push_back(value);
                 }
             }
 
-            for (int i  = 0; i < 3; i++) if (_measurements[legIndex*3+i].size() > medianFilterSize) _measurements[legIndex*3+i].erase(_measurements[legIndex*3+i].begin());
+            for (int i = 0; i < 3; i++)
+                if (_measurements[legIndex * 3 + i].size() > medianFilterSize)
+                    _measurements[legIndex * 3 + i].erase(_measurements[legIndex * 3 + i].begin());
 
-            geometry_msgs::WrenchStamped newMsg;
-            newMsg.header = msg->header;
-            newMsg.wrench = msg->wrench;
+            // Only send message when we have received at least one measurement of each sensor
+            if (!_measurements[legIndex * 3].empty() && !_measurements[legIndex + 1].empty() && !_measurements[legIndex + 2].empty()) {
 
-            newMsg.wrench.force.x = median(_measurements[legIndex*3]);
-            newMsg.wrench.force.y = median(_measurements[legIndex*3+1]);
-            newMsg.wrench.force.z = fmax(median(_measurements[legIndex*3+2]), 0.0);
+                geometry_msgs::WrenchStamped newMsg;
+                newMsg.header = msg->header;
+                newMsg.wrench = msg->wrench;
 
-            _pub_optoforce[legIndex].publish(newMsg);
+                newMsg.wrench.force.x = median(_measurements[legIndex * 3]);
+                newMsg.wrench.force.y = median(_measurements[legIndex * 3 + 1]);
 
+                newMsg.wrench.force.z = fmax(median(_measurements[legIndex * 3 + 2]), 0.0);
+
+                _pub_optoforce[legIndex].publish(newMsg);
+            }
         }
     }
 
