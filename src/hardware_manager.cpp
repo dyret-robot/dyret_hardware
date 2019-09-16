@@ -42,7 +42,7 @@ void poseCommandCallback(const dyret_common::Pose::ConstPtr &msg) {
           ((normalizeRad(msg->revolute[i]) / (2 * M_PI)) * 4095.0) + 2048.0);
       goal_pos.push_back(v);
 
-      if (v.value < 1024 || v.value > 3072) ROS_WARN("Outside angle limits on servo %lu (%.2f => %u)", i, msg->revolute[i], v.value);
+      if (msg->revolute[i] < -(M_PI/2.0) || msg->revolute[i] > (M_PI/2.0)) ROS_WARN("Outside angle limits on servo %lu (%.2f => %u)", i, msg->revolute[i], v.value);
     }
   }
 
