@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp 
   roslib
   std_msgs 
+  ublox_msgs
 )
 
 add_message_files(
@@ -22,7 +23,6 @@ add_message_files(
   ActuatorBoardCommand.msg
   ActuatorBoardState.msg
 )
-
 
 add_service_files(
   FILES
@@ -58,8 +58,7 @@ add_executable(hardware_manager src/hardware_manager.cpp
     src/dynamixel_sdk/group_bulk_read.cpp
     src/dynamixel_sdk/group_bulk_write.cpp
     src/dynamixel_sdk/port_handler.cpp
-    src/dynamixel_sdk/port_handler_linux.cpp
-)
+    src/dynamixel_sdk/port_handler_linux.cpp)
 add_dependencies(hardware_manager ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}) 
 target_link_libraries(hardware_manager dynamixel_wrapper ${catkin_LIBRARIES})
 
@@ -67,6 +66,10 @@ target_link_libraries(hardware_manager dynamixel_wrapper ${catkin_LIBRARIES})
 add_library(dynamixel_wrapper src/dynamixel_wrapper.cpp) 
 add_dependencies(dynamixel_wrapper ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}) 
 target_link_libraries(dynamixel_wrapper ${catkin_LIBRARIES})
+
+add_executable(gpsLocationParser src/gpsLocationParser.cpp)
+add_dependencies(gpsLocationParser ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gpsLocationParser ${catkin_LIBRARIES})
 
 add_executable(tmpMon src/tmpMon.cpp)
 add_dependencies(tmpMon ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

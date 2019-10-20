@@ -1,0 +1,11 @@
+<launch>
+
+  <node pkg="dyret_hardware" name="gpsLocationParser" type="gpsLocationParser" required="true"/>
+
+  <include file="$(find ublox_gps)/launch/ublox_device.launch"> 
+    <arg name="node_name" value="dyret_gps" /> 
+    <arg name="param_file_name" value="c94_m8p_rover" /> 
+  </include> 
+
+</launch>
+
