@@ -3,7 +3,7 @@
   <arg name="imu_enabled" default="true" doc="Enable IMU sensor" />
   <arg name="mocap_type" default="" doc="Type of mocap system (blank to not start mocap)" />
 
-  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" output="screen" />
+  <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" output="screen" launch-prefix="bash -c 'sleep 5.0; $0 $@'" />
 
   <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
     <param name="port" value="/dev/dyretActuatorBoard" />
@@ -14,7 +14,7 @@
   <remap from="/time_reference" to="/dyret/sensor/raw/imu_time_reference" />
   <remap from="/velocity" to="/dyret/sensor/raw/imu_velocity" />
 
-  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" if="$(arg imu_enabled)">
+  <node pkg="xsens_driver" type="mtnode.py" name="xsens_driver" if="$(arg imu_enabled)" launch-prefix="bash -c 'sleep 2.5; $0 $@'" >
     <param name="frame_id" value="/imu" />
     <param name="initial_wait" value="0.1" />
     <param name="frame_local" value="ENU" />
