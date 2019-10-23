@@ -22,8 +22,10 @@ public:
 
         geometry_msgs::PoseStamped posMsg;
 
-        posMsg.pose.position.x = currentPosNInMMN;
-        posMsg.pose.position.y = currentPosNInMME;
+        posMsg.header.stamp = ros::Time::now();
+
+        posMsg.pose.position.x = currentPosNInMMN/1000.0;
+        posMsg.pose.position.y = currentPosNInMME/1000.0;
         posMsg.pose.position.z = 0.0;
 
         _pub_position.publish(posMsg);
