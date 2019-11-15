@@ -1,11 +1,12 @@
 <launch>
   <arg name="contact_enabled" default="false" doc="Enable OptoForce contact sensors" />
+  <arg name="actuatorboard_enabled" default="true" doc="Enable actuator board" />
   <arg name="imu_enabled" default="true" doc="Enable IMU sensor" />
   <arg name="mocap_type" default="" doc="Type of mocap system (blank to not start mocap)" />
 
   <node pkg="dyret_hardware" name="hardware_manager" type="hardware_manager" required="true" output="screen" launch-prefix="bash -c 'sleep 5.0; $0 $@'" />
 
-  <node pkg="rosserial_python" name="serial_node" type="serial_node.py">
+  <node pkg="rosserial_python" name="serial_node" type="serial_node.py" if="$(arg actuatorboard_enabled)">
     <param name="port" value="/dev/dyretActuatorBoard" />
   </node>
 
